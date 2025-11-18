@@ -1,0 +1,19 @@
+﻿using System.Collections.Immutable;
+
+public abstract record JsonValue;
+
+public sealed record JsonNull : JsonValue
+{
+    public static readonly JsonNull Instance = new();
+    private JsonNull() {}
+}
+
+public sealed record JsonBool(bool Value) : JsonValue;
+
+public sealed record JsonString(string Value) : JsonValue;
+
+public sealed record JsonNumber(double Value) : JsonValue;
+
+public sealed record JsonArray(ImmutableArray<JsonValue> Elements) : JsonValue;
+
+public sealed record JsonObject(ImmutableDictionary<string, JsonValue> Fields) : JsonValue;
