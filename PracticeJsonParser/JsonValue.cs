@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+namespace PracticeJsonParser;
 
 public abstract record JsonValue;
 
