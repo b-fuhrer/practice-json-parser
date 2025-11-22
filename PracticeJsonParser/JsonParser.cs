@@ -27,8 +27,8 @@ public static class JsonParser
             '[' => ParseArray(jsonText, currentIndex),
             '{' => ParseObject(jsonText, currentIndex),
             _ => JsonResult<JsonValue>.Err(
-                    JsonErrorType.InvalidCharacter, $"Invalid character: {currentCharacter}", newIndex
-                )
+                JsonErrorType.InvalidCharacter, $"Invalid character: {currentCharacter}", newIndex
+            )
         };
 
         return parsedValue;
@@ -49,15 +49,104 @@ public static class JsonParser
         
         return currentIndex;
     }
-    
+
     private static JsonResult<JsonNull> ParseNull(ReadOnlySpan<char> jsonText, int currentIndex)
     {
-        return JsonResult<JsonNull>.Ok(JsonNull.Instance, currentIndex);
+        const int nullLength = 4;
+
+        if (currentIndex + nullLength > jsonText.Length)
+        {
+            return JsonResult<JsonNull>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
+
+        var possibleNullSlice = jsonText.Slice(currentIndex, nullLength);
+
+        return possibleNullSlice switch
+        {
+            "null" => JsonResult<JsonNull>.Ok(JsonNull.Instance, currentIndex + nullLength),
+            _ => JsonResult<JsonNull>.Err(
+                JsonErrorType.InvalidSyntax, $"Expected 'null', received '{possibleNullSlice}'", currentIndex
+            )
+        };
     }
+
+    private static JsonResult<JsonBool> ParseTrue(ReadOnlySpan<char> jsonText, int currentIndex)
+    {
+        const int trueLength = 4;
+
+        if (currentIndex + trueLength > jsonText.Length)
+        {
+            return JsonResult<JsonBool>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
+
+        var possibleTrueSlice = jsonText.Slice(currentIndex, trueLength);
+
+        return possibleTrueSlice switch
+        {
+            "true" => JsonResult<JsonBool>.Ok(new JsonBool(true), currentIndex + trueLength),
+            _ => JsonResult<JsonBool>.Err(
+                JsonErrorType.InvalidSyntax, $"Expected 'true', received '{possibleTrueSlice}'", currentIndex
+            )
+        };
+    }
+    
+    private static JsonResult<JsonBool> ParseFalse(ReadOnlySpan<char> jsonText, int currentIndex)
+    {
+        const int falseLength = 5;
+
+        if (currentIndex + falseLength > jsonText.Length)
+        {
+            return JsonResult<JsonBool>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
+
+        var possibleFalseSlice = jsonText.Slice(currentIndex, falseLength);
+
+        return possibleFalseSlice switch
+        {
+            "false" => JsonResult<JsonBool>.Ok(new JsonBool(false), currentIndex + falseLength),
+            _ => JsonResult<JsonBool>.Err(
+                JsonErrorType.InvalidSyntax, $"Expected 'false', received '{possibleFalseSlice}'", currentIndex
+            )
+        };
+    }
+
+    /*
+    // generic ParseBoolText -> lower performance but less code redundancy
+    private static JsonResult<JsonBool> ParseBoolText(ReadOnlySpan<char> jsonText, int currentIndex, string boolText)
+    {
+        var boolTextLength = boolText.Length;
+        
+        if (currentIndex + boolTextLength > jsonText.Length)
+        {
+            return JsonResult<JsonBool>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
+
+        var possibleBoolSlice = jsonText.Slice(currentIndex, boolTextLength);
+
+        return possibleBoolSlice switch
+        {
+            "true" => JsonResult<JsonBool>.Ok(new JsonBool(true), currentIndex + boolTextLength),
+            "false" => JsonResult<JsonBool>.Ok(new JsonBool(false), currentIndex + boolTextLength),
+            _ => JsonResult<JsonBool>.Err(
+                JsonErrorType.InvalidSyntax, $"Expected '{boolText}', received '{possibleBoolSlice}'", currentIndex
+            )
+        };
+    }
+    */
     
     private static JsonResult<JsonBool> ParseBool(ReadOnlySpan<char> jsonText, int currentIndex)
     {
-        return JsonResult<JsonBool>.Ok(new JsonBool(true), currentIndex);
+        var firstCharacter = jsonText[currentIndex];
+
+        return firstCharacter switch
+        {
+            't' => ParseTrue(jsonText, currentIndex), // ParseBoolText(jsonText, currentIndex, "true")
+            'f' => ParseFalse(jsonText, currentIndex),  // ParseBoolText(jsonText, currentIndex, "false")
+            _ => JsonResult<JsonBool>.Err(
+                JsonErrorType.InvalidSyntax, $"Expected 't' (true) or 'f' (false), received '{firstCharacter}'",
+                currentIndex
+            )
+        };
     }
     
     private static JsonResult<JsonNumber> ParseNumber(ReadOnlySpan<char> jsonText, int currentIndex)
