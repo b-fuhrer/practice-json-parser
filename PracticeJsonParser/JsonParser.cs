@@ -15,7 +15,10 @@ public static class JsonParser
     {
         var newIndex = SkipWhitespace(jsonText, currentIndex);
         
-        if (newIndex == jsonText.Length) return JsonResult<JsonValue>.Err(JsonErrorType.EndOfFile, newIndex);
+        if (newIndex == jsonText.Length)
+        {
+            return JsonResult<JsonValue>.Err(JsonErrorType.EndOfFile, newIndex);
+        }
         
         var nextCharacter = jsonText[newIndex];
 
@@ -28,7 +31,9 @@ public static class JsonParser
             (byte)'[' => ParseArray(jsonText, newIndex),
             (byte)'{' => ParseObject(jsonText, newIndex),
             _ => JsonResult<JsonValue>.Err(
-                JsonErrorType.InvalidCharacter, $"Invalid character: {nextCharacter}", newIndex
+                JsonErrorType.InvalidCharacter,
+                $"Invalid character: {nextCharacter}",
+                newIndex
             )
         };
 
@@ -42,8 +47,11 @@ public static class JsonParser
             var currentCharacter = jsonText[currentIndex];
             
             // treats all control characters (ASCII < 32) as whitespace
-            // includes JSON whitespace characters: '\t', '\n', '\r'
-            if (currentCharacter > (byte)' ') return currentIndex;
+            // includes all JSON whitespace characters: '\t', '\n', '\r'
+            if (currentCharacter > (byte)' ')
+            {
+                return currentIndex;
+            }
             
             currentIndex++;
         }
@@ -56,14 +64,18 @@ public static class JsonParser
         const int nullLength = 4;
 
         if (currentIndex + nullLength > jsonText.Length)
+        {
             return JsonResult<JsonNull>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
 
         var slice = jsonText.Slice(currentIndex, nullLength);
 
         return slice.SequenceEqual("null"u8)
             ? JsonResult<JsonNull>.Ok(JsonNull.Instance, currentIndex + nullLength)
             : JsonResult<JsonNull>.Err(
-                JsonErrorType.InvalidSyntax, $"Expected 'null', received '{Encoding.UTF8.GetString(slice)}'", currentIndex
+                JsonErrorType.InvalidSyntax,
+                $"Expected 'null', received '{Encoding.UTF8.GetString(slice)}'",
+                currentIndex
             );
     }
 
@@ -72,14 +84,18 @@ public static class JsonParser
         const int trueLength = 4;
 
         if (currentIndex + trueLength > jsonText.Length)
+        {
             return JsonResult<JsonBool>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
 
         var slice = jsonText.Slice(currentIndex, trueLength);
 
         return slice.SequenceEqual("true"u8)
             ? JsonResult<JsonBool>.Ok(new JsonBool(true), currentIndex + trueLength)
             : JsonResult<JsonBool>.Err(
-                JsonErrorType.InvalidSyntax, $"Expected 'true', received '{Encoding.UTF8.GetString(slice)}'", currentIndex
+                JsonErrorType.InvalidSyntax,
+                $"Expected 'true', received '{Encoding.UTF8.GetString(slice)}'",
+                currentIndex
             );
     }
 
@@ -88,14 +104,17 @@ public static class JsonParser
         const int falseLength = 5;
 
         if (currentIndex + falseLength > jsonText.Length)
+        {
             return JsonResult<JsonBool>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
 
         var slice = jsonText.Slice(currentIndex, falseLength);
 
         return slice.SequenceEqual("false"u8)
             ? JsonResult<JsonBool>.Ok(new JsonBool(false), currentIndex + falseLength)
             : JsonResult<JsonBool>.Err(
-                JsonErrorType.InvalidSyntax, $"Expected 'false', received '{Encoding.UTF8.GetString(slice)}'",
+                JsonErrorType.InvalidSyntax,
+                $"Expected 'false', received '{Encoding.UTF8.GetString(slice)}'",
                 currentIndex
             );
     }
@@ -109,7 +128,8 @@ public static class JsonParser
             (byte)'t' => ParseTrue(jsonText, currentIndex),
             (byte)'f' => ParseFalse(jsonText, currentIndex),
             _ => JsonResult<JsonBool>.Err(
-                JsonErrorType.InvalidSyntax, $"Expected 't' (true) or 'f' (false), received '{firstCharacter}'",
+                JsonErrorType.InvalidSyntax,
+                $"Expected 't' (true) or 'f' (false), received '{firstCharacter}'",
                 currentIndex
             )
         };
@@ -120,9 +140,39 @@ public static class JsonParser
         return JsonResult<JsonNumber>.Ok(new JsonNumber(1), currentIndex);
     }
     
+    private static JsonResult<JsonString> OnEscapedCharacter(ReadOnlySpan<byte> jsonText, int currentIndex)
+    {
+        return JsonResult<JsonString>.Err(
+            JsonErrorType.InvalidCharacter, 
+            "Escaped characters are not supported yet", 
+            currentIndex
+        );
+    }
+    
     private static JsonResult<JsonString> ParseString(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        return JsonResult<JsonString>.Ok(new JsonString(""), currentIndex);
+        var initialIndex = currentIndex + 1; // first character after the opening "
+        var newIndex = initialIndex; 
+        
+        while (newIndex < jsonText.Length)
+        {
+            var currentCharacter = jsonText[newIndex];
+
+            if (currentCharacter == (byte)'"')
+            {
+                var parsedString = Encoding.UTF8.GetString(jsonText.Slice(initialIndex, newIndex - initialIndex));
+                return JsonResult<JsonString>.Ok(new JsonString(parsedString), newIndex + 1);
+            }
+            
+            if (jsonText[newIndex] == (byte)'\\')
+            {
+                return OnEscapedCharacter(jsonText, newIndex);
+            }
+            
+            newIndex++;
+        }
+
+        return JsonResult<JsonString>.Err(JsonErrorType.EndOfFile, newIndex);
     }
     
     private static JsonResult<JsonArray> ParseArray(ReadOnlySpan<byte> jsonText, int currentIndex)
