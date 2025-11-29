@@ -9,7 +9,11 @@ public sealed record JsonNull : JsonValue
     private JsonNull() {}
 }
 
-public sealed record JsonBool(bool Value) : JsonValue;
+public sealed record JsonBool(bool Value) : JsonValue
+{
+    public static readonly JsonBool True = new(true);
+    public static readonly JsonBool False = new(false);
+}
 
 public sealed record JsonString(string Value) : JsonValue;
 

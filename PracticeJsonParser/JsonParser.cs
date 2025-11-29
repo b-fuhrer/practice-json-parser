@@ -91,7 +91,7 @@ public static class JsonParser
         var slice = jsonText.Slice(currentIndex, trueLength);
 
         return slice.SequenceEqual("true"u8)
-            ? JsonResult<JsonBool>.Ok(new JsonBool(true), currentIndex + trueLength)
+            ? JsonResult<JsonBool>.Ok(JsonBool.True, currentIndex + trueLength)
             : JsonResult<JsonBool>.Err(
                 JsonErrorType.InvalidSyntax,
                 $"Expected 'true', received '{Encoding.UTF8.GetString(slice)}'",
@@ -111,7 +111,7 @@ public static class JsonParser
         var slice = jsonText.Slice(currentIndex, falseLength);
 
         return slice.SequenceEqual("false"u8)
-            ? JsonResult<JsonBool>.Ok(new JsonBool(false), currentIndex + falseLength)
+            ? JsonResult<JsonBool>.Ok(JsonBool.False, currentIndex + falseLength)
             : JsonResult<JsonBool>.Err(
                 JsonErrorType.InvalidSyntax,
                 $"Expected 'false', received '{Encoding.UTF8.GetString(slice)}'",
@@ -139,14 +139,77 @@ public static class JsonParser
     {
         return JsonResult<JsonNumber>.Ok(new JsonNumber(1), currentIndex);
     }
-    
-    private static JsonResult<JsonString> OnEscapedCharacter(ReadOnlySpan<byte> jsonText, int currentIndex)
+
+    private static (char? value, int newIndex) DecodeUnicodeSequence(ReadOnlySpan<byte> jsonText, int escapedIndex)
     {
-        return JsonResult<JsonString>.Err(
-            JsonErrorType.InvalidCharacter, 
-            "Escaped characters are not supported yet", 
-            currentIndex
-        );
+        return (null, escapedIndex);
+    }
+    
+    private static (char? value, int newIndex) DecodeEscapedCharacter(ReadOnlySpan<byte> jsonText, int escapedIndex)
+    {
+        var escapedCharacter = jsonText[escapedIndex];
+        
+        return escapedCharacter switch
+        {
+            (byte)'b' => ('\b', escapedIndex + 1),
+            (byte)'f' => ('\f', escapedIndex + 1),
+            (byte)'n' => ('\n', escapedIndex + 1),
+            (byte)'r' => ('\r', escapedIndex + 1),
+            (byte)'t' => ('\t', escapedIndex + 1),
+            (byte)'\\' => ('\\', escapedIndex + 1),
+            (byte)'/' => ('/', escapedIndex + 1),
+            (byte)'"' => ('"', escapedIndex + 1),
+            (byte)'u' => DecodeUnicodeSequence(jsonText, escapedIndex),
+            _ => (null, escapedIndex)
+        };
+    }
+    
+    private static JsonResult<JsonString> OnEscapedCharacter(ReadOnlySpan<byte> jsonText, int initialIndex, int currentIndex)
+    {
+        var newIndex = currentIndex;
+        
+        const int additionalStartCapacity = 32;
+        var scannedLength = currentIndex - initialIndex;
+        var scannedChunk = Encoding.UTF8.GetString(jsonText.Slice(initialIndex, scannedLength));
+        var stringBuilder = new StringBuilder(scannedChunk, scannedLength + additionalStartCapacity);
+
+        while (newIndex < jsonText.Length)
+        {
+            var currentCharacter = jsonText[newIndex];
+            
+            if (currentCharacter == (byte)'"')
+            {
+                return JsonResult<JsonString>.Ok(new JsonString(stringBuilder.ToString()), newIndex + 1);
+            }
+
+            if (currentCharacter == (byte)'\\')
+            {
+                if (newIndex + 1 >= jsonText.Length)
+                {
+                    return JsonResult<JsonString>.Err(JsonErrorType.EndOfFile, newIndex);
+                }
+                
+                var (nextEscapedCharacter, nextIndex) = DecodeEscapedCharacter(jsonText, newIndex + 1);
+                
+                if (nextEscapedCharacter is null)
+                {
+                    return JsonResult<JsonString>.Err(
+                        JsonErrorType.InvalidCharacter,
+                        $"Failed to decode escaped character '\\{(char)jsonText[newIndex + 1]}'",
+                        newIndex
+                    );
+                }
+                
+                stringBuilder.Append(nextEscapedCharacter);
+                newIndex = nextIndex;
+                continue;
+            }
+
+            stringBuilder.Append((char)currentCharacter);
+            newIndex++;
+        }
+        
+        return JsonResult<JsonString>.Err(JsonErrorType.EndOfFile, newIndex);
     }
     
     private static JsonResult<JsonString> ParseString(ReadOnlySpan<byte> jsonText, int currentIndex)
@@ -157,16 +220,16 @@ public static class JsonParser
         while (newIndex < jsonText.Length)
         {
             var currentCharacter = jsonText[newIndex];
-
+            
             if (currentCharacter == (byte)'"')
             {
                 var parsedString = Encoding.UTF8.GetString(jsonText.Slice(initialIndex, newIndex - initialIndex));
                 return JsonResult<JsonString>.Ok(new JsonString(parsedString), newIndex + 1);
             }
             
-            if (jsonText[newIndex] == (byte)'\\')
+            if (currentCharacter == (byte)'\\')
             {
-                return OnEscapedCharacter(jsonText, newIndex);
+                return OnEscapedCharacter(jsonText, initialIndex, newIndex);
             }
             
             newIndex++;
