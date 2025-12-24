@@ -3,26 +3,26 @@ using System.Text;
 
 public static class JsonParser
 {
-    private const int invalidHex = -1;
+    private const int InvalidHex = -1;
     
     // not implemented yet
     public static JsonValue Parse(ReadOnlySpan<byte> jsonText)
     {
-        var currentIndex = 0;
+        int currentIndex = 0;
         
         return JsonNull.Instance;
     }
 
     private static JsonResult<JsonValue> ParseIntoValue(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        var newIndex = SkipWhitespace(jsonText, currentIndex);
+        int newIndex = SkipWhitespace(jsonText, currentIndex);
         
         if (newIndex == jsonText.Length)
         {
             return JsonResult<JsonValue>.Err(JsonErrorType.EndOfFile, newIndex);
         }
         
-        var nextCharacter = jsonText[newIndex];
+        byte nextCharacter = jsonText[newIndex];
 
         var parsedValue = nextCharacter switch
         {
@@ -46,7 +46,7 @@ public static class JsonParser
     {
         while (currentIndex < jsonText.Length)
         {
-            var currentCharacter = jsonText[currentIndex];
+            byte currentCharacter = jsonText[currentIndex];
             
             // treats all control characters (ASCII < 32) as whitespace
             // includes all JSON whitespace characters: '\t', '\n', '\r'
@@ -123,7 +123,7 @@ public static class JsonParser
 
     private static JsonResult<JsonBool> ParseBool(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        var firstCharacter = jsonText[currentIndex];
+        byte firstCharacter = jsonText[currentIndex];
 
         return firstCharacter switch
         {
@@ -136,10 +136,48 @@ public static class JsonParser
             )
         };
     }
-    
+
+    private static bool IsByteDigit(byte byteToCheck)
+    {
+        return byteToCheck is >= (byte)'0' and <= (byte)'9';
+    }
+
     private static JsonResult<JsonNumber> ParseNumber(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        return JsonResult<JsonNumber>.Ok(new JsonNumber(1), currentIndex);
+        (int numberSign, int newIndex) = jsonText[currentIndex] == (byte)'-'
+            ? (-1, currentIndex + 1)
+            : (1, currentIndex);
+
+        double accumulator = 0.0;
+
+        while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
+        {
+            int currentDigit = jsonText[newIndex] - (byte)'0';
+
+            accumulator = accumulator * 10 + currentDigit;
+
+            newIndex++;
+        }
+
+        if (newIndex < jsonText.Length && jsonText[newIndex] == '.')
+        {
+            newIndex++;
+
+            double multiplier = 0.1;
+
+            while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
+            {
+                int currentDigit = jsonText[newIndex] - (byte)'0';
+
+                accumulator += currentDigit * multiplier;
+
+                multiplier *= 0.1;
+
+                newIndex++;
+            }
+        }
+
+        return JsonResult<JsonNumber>.Ok(new JsonNumber(numberSign * accumulator), newIndex);
     }
    
     private static int ParseHexByteIntoInt(byte hexByte)
@@ -149,7 +187,7 @@ public static class JsonParser
             >= (byte)'0' and <= (byte)'9' => hexByte - (byte)'0',
             >= (byte)'A' and <= (byte)'F' => hexByte - (byte)'A' + 10, // A = 10 in hex
             >= (byte)'a' and <= (byte)'f' => hexByte - (byte)'a' + 10, // a = 10 in hex
-            _ => invalidHex
+            _ => InvalidHex
         };
     }
     
@@ -161,10 +199,10 @@ public static class JsonParser
             return (null, escapedIndex, new JsonError(JsonErrorType.EndOfFile, null));
         }
         
-        var leftByte = ParseHexByteIntoInt(jsonText[escapedIndex + 1]);
-        var middleLeftByte = ParseHexByteIntoInt(jsonText[escapedIndex + 2]);
-        var middleRightByte = ParseHexByteIntoInt(jsonText[escapedIndex + 3]);
-        var rightByte = ParseHexByteIntoInt(jsonText[escapedIndex + 4]);
+        int leftByte = ParseHexByteIntoInt(jsonText[escapedIndex + 1]);
+        int middleLeftByte = ParseHexByteIntoInt(jsonText[escapedIndex + 2]);
+        int middleRightByte = ParseHexByteIntoInt(jsonText[escapedIndex + 3]);
+        int rightByte = ParseHexByteIntoInt(jsonText[escapedIndex + 4]);
         
         // if any of the "bytes" is negative, their bit-wise OR is also negative
         if ((leftByte | middleLeftByte | middleRightByte | rightByte) < 0)
@@ -176,14 +214,14 @@ public static class JsonParser
             );
         }
 
-        var parsedSequence = (char)(leftByte << 12 | middleLeftByte << 8 | middleRightByte << 4 | rightByte);
+        char parsedSequence = (char)(leftByte << 12 | middleLeftByte << 8 | middleRightByte << 4 | rightByte);
 
         return (parsedSequence, escapedIndex + 5, null);
     }
     
     private static (char? value, int newIndex, JsonError? error) DecodeEscapedCharacter(ReadOnlySpan<byte> jsonText, int escapedIndex)
     {
-        var escapedCharacter = jsonText[escapedIndex];
+        byte escapedCharacter = jsonText[escapedIndex];
         
         return escapedCharacter switch
         {
@@ -214,25 +252,25 @@ public static class JsonParser
         }
 
         Span<char> stackBuffer = stackalloc char[utf8Slice.Length];
-        var amountOfCharsWritten = Encoding.UTF8.GetChars(utf8Slice, stackBuffer);
+        int amountOfCharsWritten = Encoding.UTF8.GetChars(utf8Slice, stackBuffer);
         stringBuilder.Append(stackBuffer[..amountOfCharsWritten]);
     }
     
     private static JsonResult<JsonString> OnEscapedCharacter(ReadOnlySpan<byte> jsonText, int initialIndex, int currentIndex)
     {
-        var newIndex = currentIndex;
+        int newIndex = currentIndex;
         
         const int additionalStartCapacity = 32;
-        var scannedLength = currentIndex - initialIndex;
+        int scannedLength = currentIndex - initialIndex;
         var scannedChunk = jsonText.Slice(initialIndex, scannedLength);
         var stringBuilder = new StringBuilder(capacity: scannedLength + additionalStartCapacity);
         StringBuilderAppendUtf8(stringBuilder, scannedChunk);
         
-        var startOfSegment = currentIndex;
+        int startOfSegment = currentIndex;
         
         while (newIndex < jsonText.Length)
         {
-            var currentCharacter = jsonText[newIndex];
+            byte currentCharacter = jsonText[newIndex];
             
             if (currentCharacter == (byte)'"')
             {
@@ -256,7 +294,7 @@ public static class JsonParser
                     return JsonResult<JsonString>.Err(JsonErrorType.EndOfFile, newIndex);
                 }
                 
-                var (escapedCharacter, nextIndex, escapedError) = DecodeEscapedCharacter(jsonText, newIndex + 1);
+                (char? escapedCharacter, int nextIndex, var escapedError) = DecodeEscapedCharacter(jsonText, newIndex + 1);
 
                 if (escapedError is not null)
                 {
@@ -278,16 +316,16 @@ public static class JsonParser
     private static JsonResult<JsonString> ParseString(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         // initialIndex = first character after the opening "
-        var initialIndex = currentIndex + 1;
-        var newIndex = initialIndex; 
+        int initialIndex = currentIndex + 1;
+        int newIndex = initialIndex;
         
         while (newIndex < jsonText.Length)
         {
-            var currentCharacter = jsonText[newIndex];
+            byte currentCharacter = jsonText[newIndex];
             
             if (currentCharacter == (byte)'"')
             {
-                var parsedString = Encoding.UTF8.GetString(jsonText.Slice(initialIndex, newIndex - initialIndex));
+                string parsedString = Encoding.UTF8.GetString(jsonText.Slice(initialIndex, newIndex - initialIndex));
                 return JsonResult<JsonString>.Ok(new JsonString(parsedString), newIndex + 1);
             }
             
