@@ -144,11 +144,12 @@ public static class JsonParser
 
     private static JsonResult<JsonNumber> ParseNumber(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        (int numberSign, int newIndex) = jsonText[currentIndex] == (byte)'-'
-            ? (-1, currentIndex + 1)
-            : (1, currentIndex);
-
         double accumulator = 0.0;
+        (double numberSign, int newIndex) = jsonText[currentIndex] == (byte)'-'
+            ? (-1.0, currentIndex + 1)
+            : (1.0, currentIndex);
+        int exponentAccumulator = 0;
+        int exponentSign = 1;
 
         while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
         {
@@ -159,10 +160,11 @@ public static class JsonParser
             newIndex++;
         }
 
-        if (newIndex < jsonText.Length && jsonText[newIndex] == '.')
+
+        if (newIndex < jsonText.Length && jsonText[newIndex] == (byte)'.')
         {
             newIndex++;
-
+            int fractionStartIndex = newIndex;
             double multiplier = 0.1;
 
             while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
@@ -175,9 +177,87 @@ public static class JsonParser
 
                 newIndex++;
             }
+
+            if (newIndex == fractionStartIndex)
+            {
+                return JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidCharacter,
+                    "A number is not allowed to end with a decimal point.",
+                    newIndex
+                );
+            }
         }
 
-        return JsonResult<JsonNumber>.Ok(new JsonNumber(numberSign * accumulator), newIndex);
+
+        if (newIndex < jsonText.Length && (jsonText[newIndex] == (byte)'e' || jsonText[newIndex] == (byte)'E'))
+        {
+            if (newIndex + 1 < jsonText.Length)
+            {
+                (exponentSign, newIndex) = jsonText[newIndex + 1] switch
+                {
+                    (byte)'-' => (-1, newIndex + 2),
+                    (byte)'+' => (1, newIndex + 2),
+                    _ => (1, newIndex + 1)
+                };
+            }
+            else
+            {
+                return JsonResult<JsonNumber>.Err(JsonErrorType.EndOfFile, newIndex);
+            }
+
+            int exponentStartIndex = newIndex;
+
+            while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
+            {
+                int currentDigit = jsonText[newIndex] - (byte)'0';
+
+                exponentAccumulator = exponentAccumulator * 10 + currentDigit;
+
+                newIndex++;
+            }
+
+            if (newIndex == exponentStartIndex)
+            {
+                return JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidCharacter,
+                    "A number in scientific notation is not allowed to end with an 'e'/'E'.",
+                    newIndex
+                );
+            }
+        }
+
+        double result = numberSign * accumulator * Math.Pow(10.0, exponentSign * exponentAccumulator);
+
+        if (newIndex < jsonText.Length)
+        {
+            byte resultCharacter = jsonText[newIndex];
+
+            return resultCharacter switch
+            {
+                (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
+                    JsonResult<JsonNumber>.Ok(
+                        new JsonNumber(result),
+                        newIndex
+                    ),
+                (byte)'.' => JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidCharacter,
+                    "A number is only allowed to have one decimal point.",
+                    newIndex
+                ),
+                (byte)'e' or (byte)'E' => JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidCharacter,
+                    "A number is only allowed to have one exponent marker 'e'/'E'.",
+                    newIndex
+                ),
+                _ => JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidCharacter,
+                    $"A number cannot contain the character '{(char)resultCharacter}'.",
+                    newIndex
+                )
+            };
+        }
+
+        return JsonResult<JsonNumber>.Ok(new JsonNumber(result), newIndex); // numbers are allowed at end of file
     }
    
     private static int ParseHexByteIntoInt(byte hexByte)
