@@ -142,6 +142,19 @@ public static class JsonParser
         return byteToCheck is >= (byte)'0' and <= (byte)'9';
     }
 
+    private static double CalculatePowerOf10(int exponent)
+    {
+        double result = 1.0;
+        int absoluteExponent = Math.Abs(exponent);
+
+        for (int i = 0; i < absoluteExponent; i++)
+        {
+            result *= 10.0;
+        }
+
+        return exponent < 0 ? 1.0 / result : result;
+    }
+
     private static JsonResult<JsonNumber> ParseNumber(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         double accumulator = 0.0;
@@ -159,7 +172,6 @@ public static class JsonParser
 
             newIndex++;
         }
-
 
         if (newIndex < jsonText.Length && jsonText[newIndex] == (byte)'.')
         {
@@ -187,7 +199,6 @@ public static class JsonParser
                 );
             }
         }
-
 
         if (newIndex < jsonText.Length && (jsonText[newIndex] == (byte)'e' || jsonText[newIndex] == (byte)'E'))
         {
@@ -226,17 +237,17 @@ public static class JsonParser
             }
         }
 
-        double result = numberSign * accumulator * Math.Pow(10.0, exponentSign * exponentAccumulator);
+        double resultNumber = numberSign * accumulator * CalculatePowerOf10(exponentSign * exponentAccumulator);
 
         if (newIndex < jsonText.Length)
         {
-            byte resultCharacter = jsonText[newIndex];
+            byte lastCharacter = jsonText[newIndex];
 
-            return resultCharacter switch
+            return lastCharacter switch
             {
                 (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
                     JsonResult<JsonNumber>.Ok(
-                        new JsonNumber(result),
+                        new JsonNumber(resultNumber),
                         newIndex
                     ),
                 (byte)'.' => JsonResult<JsonNumber>.Err(
@@ -251,13 +262,13 @@ public static class JsonParser
                 ),
                 _ => JsonResult<JsonNumber>.Err(
                     JsonErrorType.InvalidCharacter,
-                    $"A number cannot contain the character '{(char)resultCharacter}'.",
+                    $"A number cannot contain the character '{(char)lastCharacter}'.",
                     newIndex
                 )
             };
         }
 
-        return JsonResult<JsonNumber>.Ok(new JsonNumber(result), newIndex); // numbers are allowed at end of file
+        return JsonResult<JsonNumber>.Ok(new JsonNumber(resultNumber), newIndex); // numbers are allowed at end of file
     }
    
     private static int ParseHexByteIntoInt(byte hexByte)
