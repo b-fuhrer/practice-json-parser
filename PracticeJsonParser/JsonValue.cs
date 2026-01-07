@@ -9,15 +9,15 @@ public sealed record JsonNull : JsonValue
     private JsonNull() {}
 }
 
-public sealed record JsonBool(bool Value) : JsonValue
+public sealed record JsonBool(bool Bool) : JsonValue
 {
     public static readonly JsonBool True = new(true);
     public static readonly JsonBool False = new(false);
 }
 
-public sealed record JsonString(string Value) : JsonValue;
+public sealed record JsonString(string String) : JsonValue;
 
-public sealed record JsonNumber(double Value) : JsonValue;
+public sealed record JsonNumber(double Number) : JsonValue;
 
 public sealed record JsonArray(ImmutableArray<JsonValue> Elements) : JsonValue;
 
