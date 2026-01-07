@@ -1,4 +1,6 @@
-﻿namespace PracticeJsonParser;
+﻿using System.Collections.Immutable;
+
+namespace PracticeJsonParser;
 using System.Text;
 
 public static class JsonParser
@@ -433,7 +435,61 @@ public static class JsonParser
     
     private static JsonResult<JsonArray> ParseArray(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        return JsonResult<JsonArray>.Ok(new JsonArray([]), currentIndex);
+        ImmutableArray<JsonValue>.Builder arrayBuilder = ImmutableArray.CreateBuilder<JsonValue>();
+        
+        int newIndex = SkipWhitespace(jsonText, currentIndex);
+        if (newIndex == jsonText.Length)
+        {
+            return JsonResult<JsonArray>.Err(JsonErrorType.EndOfFile, newIndex);
+        }
+
+        if (jsonText[newIndex] == (byte)']')
+        {
+            return JsonResult<JsonArray>.Ok(new JsonArray([]), newIndex);
+        }
+        
+        while (newIndex < jsonText.Length)
+        {
+
+            var parsedValue = ParseIntoValue(jsonText, newIndex);
+
+            if (!parsedValue.Success)
+            {
+                return JsonResult<JsonArray>.Err(
+                    parsedValue.Error.Value.Type,
+                    parsedValue.Error.Value.Message,
+                    parsedValue.Index
+                );
+            }
+
+            arrayBuilder.Add(parsedValue.Value);
+
+            int skipIndex = SkipWhitespace(jsonText, parsedValue.Index);
+            if (skipIndex == jsonText.Length)
+            {
+                return JsonResult<JsonArray>.Err(JsonErrorType.EndOfFile, skipIndex);
+            }
+
+            byte characterAfterWhitespace = jsonText[skipIndex];
+
+            if (characterAfterWhitespace == (byte)']')
+            {
+                return JsonResult<JsonArray>.Ok(new JsonArray(arrayBuilder.ToImmutableArray()), skipIndex + 1);
+            }
+
+            if (characterAfterWhitespace != (byte)',')
+            {
+                return JsonResult<JsonArray>.Err(
+                    JsonErrorType.InvalidSyntax,
+                    $"Array elements must be separated by ',' characters but found '{characterAfterWhitespace}'.",
+                    skipIndex
+                );
+            }
+
+            newIndex = skipIndex + 1;
+        }
+
+        return JsonResult<JsonArray>.Err(JsonErrorType.EndOfFile, newIndex);
     }
     
     private static JsonResult<JsonObject> ParseObject(ReadOnlySpan<byte> jsonText, int currentIndex)

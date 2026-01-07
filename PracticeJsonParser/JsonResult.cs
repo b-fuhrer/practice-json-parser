@@ -23,7 +23,7 @@ public readonly record struct JsonResult<T>(T? Value, int Index, JsonError? Erro
     public static JsonResult<T> Err(JsonError error, int index) 
         => new(null, index, error);
 
-    public static JsonResult<T> Err(JsonErrorType type, string message, int index)
+    public static JsonResult<T> Err(JsonErrorType type, string? message, int index)
         => new(null, index, new JsonError(type, message));
     
     public static JsonResult<T> Err(JsonErrorType type, int index)
