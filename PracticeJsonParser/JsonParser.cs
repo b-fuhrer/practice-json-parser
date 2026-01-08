@@ -7,12 +7,28 @@ public static class JsonParser
 {
     private const int InvalidHex = -1;
     
-    // not implemented yet
-    public static JsonValue Parse(ReadOnlySpan<byte> jsonText)
+    public static JsonResult<JsonValue> Parse(ReadOnlySpan<byte> jsonText)
     {
-        int currentIndex = 0;
-        
-        return JsonNull.Instance;
+        if (jsonText.Length == 0)
+        {
+            return JsonResult<JsonValue>.Err(JsonErrorType.EndOfFile, "JSON has no content.", 0);
+        }
+
+        var parsedJson = ParseIntoValue(jsonText, 0);
+        if (!parsedJson.Success)
+        {
+            return parsedJson;
+        }
+
+        int skipIndex = SkipWhitespace(jsonText, parsedJson.Index);
+
+        return skipIndex == jsonText.Length
+            ? parsedJson
+            : JsonResult<JsonValue>.Err(
+                JsonErrorType.InvalidCharacter,
+                "JSON has garbage after the parsed content.",
+                skipIndex
+            );
     }
 
     private static JsonResult<JsonValue> ParseIntoValue(ReadOnlySpan<byte> jsonText, int currentIndex)
