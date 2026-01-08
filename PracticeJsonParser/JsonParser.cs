@@ -4,7 +4,7 @@ namespace PracticeJsonParser;
 
 public static class JsonParser
 {
-    internal const int InvalidHex = -1;
+    private const int InvalidHex = -1;
     
     public static JsonResult<JsonValue> Parse(ReadOnlySpan<byte> jsonText)
     {
@@ -30,7 +30,7 @@ public static class JsonParser
             );
     }
 
-    internal static JsonResult<JsonValue> ParseIntoValue(ReadOnlySpan<byte> jsonText, int currentIndex)
+    private static JsonResult<JsonValue> ParseIntoValue(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         int newIndex = SkipWhitespace(jsonText, currentIndex);
         
@@ -58,8 +58,8 @@ public static class JsonParser
 
         return parsedValue;
     }
-    
-    internal static int SkipWhitespace(ReadOnlySpan<byte> jsonText, int currentIndex)
+
+    private static int SkipWhitespace(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         while (currentIndex < jsonText.Length)
         {
@@ -98,7 +98,7 @@ public static class JsonParser
             );
     }
 
-    internal static JsonResult<JsonBool> ParseTrue(ReadOnlySpan<byte> jsonText, int currentIndex)
+    private static JsonResult<JsonBool> ParseTrue(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         const int trueLength = 4;
 
@@ -118,7 +118,7 @@ public static class JsonParser
             );
     }
 
-    internal static JsonResult<JsonBool> ParseFalse(ReadOnlySpan<byte> jsonText, int currentIndex)
+    private static JsonResult<JsonBool> ParseFalse(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         const int falseLength = 5;
 
@@ -154,12 +154,12 @@ public static class JsonParser
         };
     }
 
-    internal static bool IsByteDigit(byte byteToCheck)
+    private static bool IsByteDigit(byte byteToCheck)
     {
         return byteToCheck is >= (byte)'0' and <= (byte)'9';
     }
 
-    internal static double CalculatePowerOf10(int exponent)
+    private static double CalculatePowerOf10(int exponent)
     {
         double result = 1.0;
         int absoluteExponent = Math.Abs(exponent);
@@ -288,7 +288,7 @@ public static class JsonParser
         return JsonResult<JsonNumber>.Ok(new JsonNumber(resultNumber), newIndex); // numbers are allowed at end of file
     }
    
-    internal static int ParseHexByteIntoInt(byte hexByte)
+    private static int ParseHexByteIntoInt(byte hexByte)
     {
         return hexByte switch
         {
@@ -299,7 +299,7 @@ public static class JsonParser
         };
     }
     
-    internal static (char? value, int newIndex, JsonError? error) DecodeUnicodeSequence(ReadOnlySpan<byte> jsonText, int escapedIndex)
+    private static (char? value, int newIndex, JsonError? error) DecodeUnicodeSequence(ReadOnlySpan<byte> jsonText, int escapedIndex)
     {
         // escapedIndex = index of the 'u'
         if (escapedIndex + 4 >= jsonText.Length)
@@ -327,7 +327,7 @@ public static class JsonParser
         return (parsedSequence, escapedIndex + 5, null);
     }
     
-    internal static (char? value, int newIndex, JsonError? error) DecodeEscapedCharacter(ReadOnlySpan<byte> jsonText, int escapedIndex)
+    private static (char? value, int newIndex, JsonError? error) DecodeEscapedCharacter(ReadOnlySpan<byte> jsonText, int escapedIndex)
     {
         byte escapedCharacter = jsonText[escapedIndex];
         
@@ -350,7 +350,7 @@ public static class JsonParser
         };
     }
 
-    internal static void StringBuilderAppendUtf8(StringBuilder stringBuilder, ReadOnlySpan<byte> utf8Slice)
+    private static void StringBuilderAppendUtf8(StringBuilder stringBuilder, ReadOnlySpan<byte> utf8Slice)
     {
         // only allocate maximum of 1KB on the stack here
         if (utf8Slice.Length > 512)
@@ -364,7 +364,7 @@ public static class JsonParser
         stringBuilder.Append(stackBuffer[..amountOfCharsWritten]);
     }
     
-    internal static JsonResult<JsonString> OnEscapedCharacter(ReadOnlySpan<byte> jsonText, int initialIndex, int currentIndex)
+    private static JsonResult<JsonString> OnEscapedCharacter(ReadOnlySpan<byte> jsonText, int initialIndex, int currentIndex)
     {
         int newIndex = currentIndex;
         
@@ -451,8 +451,9 @@ public static class JsonParser
     internal static JsonResult<JsonArray> ParseArray(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         ImmutableArray<JsonValue>.Builder arrayBuilder = ImmutableArray.CreateBuilder<JsonValue>();
-        
-        int newIndex = SkipWhitespace(jsonText, currentIndex);
+
+        // currentIndex is index of opening bracket '['
+        int newIndex = SkipWhitespace(jsonText, currentIndex + 1);
         if (newIndex == jsonText.Length)
         {
             return JsonResult<JsonArray>.Err(JsonErrorType.EndOfFile, newIndex);
