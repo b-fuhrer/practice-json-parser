@@ -461,14 +461,13 @@ public static class JsonParser
 
         if (jsonText[newIndex] == (byte)']')
         {
-            return JsonResult<JsonArray>.Ok(new JsonArray([]), newIndex);
+            return JsonResult<JsonArray>.Ok(new JsonArray([]), newIndex + 1);
         }
         
         while (newIndex < jsonText.Length)
         {
 
             var parsedValue = ParseIntoValue(jsonText, newIndex);
-
             if (!parsedValue.Success)
             {
                 return JsonResult<JsonArray>.Err(
@@ -522,11 +521,17 @@ public static class JsonParser
 
         if (jsonText[newIndex] == (byte)'}')
         {
-            return JsonResult<JsonObject>.Ok(new JsonObject([]), newIndex);
+            return JsonResult<JsonObject>.Ok(new JsonObject([]), newIndex + 1);
         }
 
         while (newIndex < jsonText.Length)
         {
+            newIndex = SkipWhitespace(jsonText, newIndex);
+            if (newIndex == jsonText.Length)
+            {
+                return JsonResult<JsonObject>.Err(JsonErrorType.EndOfFile, newIndex);
+            }
+
             if (jsonText[newIndex] != (byte)'"')
             {
                 return JsonResult<JsonObject>.Err(
