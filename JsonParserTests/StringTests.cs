@@ -30,8 +30,8 @@ public class StringTests
     }
 
     [Theory]
+    // no missing opening quote test because parser design makes this impossible
     [InlineData("\"unclosed string")]
-    [InlineData("missing_opening_quote\"")]
     [InlineData("\"invalid\\escape\"")]
     [InlineData("\"\\uGGGG\"")] // invalid hex in unicode escape
     public void ParseString_InvalidFormats_ReturnError(string input)

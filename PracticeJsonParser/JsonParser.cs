@@ -449,6 +449,11 @@ public static class JsonParser
     
     internal static JsonResult<JsonString> ParseString(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
+        if (currentIndex + 1 > jsonText.Length)
+        {
+            return JsonResult<JsonString>.Err(JsonErrorType.EndOfFile, currentIndex);
+        }
+
         // initialIndex = first character after the opening "
         int initialIndex = currentIndex + 1;
         int newIndex = initialIndex;
