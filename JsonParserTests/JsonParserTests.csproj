@@ -19,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\PracticeJsonParser\PracticeJsonParser.csproj" />
+      <ProjectReference Include="..\JsonParserLogic\JsonParserLogic.csproj" />
     </ItemGroup>
 
 </Project>

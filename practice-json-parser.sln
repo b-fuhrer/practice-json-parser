@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PracticeJsonParser", "PracticeJsonParser\PracticeJsonParser.csproj", "{73FD163E-7076-4C79-8081-6ED0DEAEB80F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonParserLogic", "JsonParserLogic\JsonParserLogic.csproj", "{73FD163E-7076-4C79-8081-6ED0DEAEB80F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonParserTests", "JsonParserTests\JsonParserTests.csproj", "{5383EC10-70AB-4831-8D9F-9A9711B8E6CF}"
 EndProject
