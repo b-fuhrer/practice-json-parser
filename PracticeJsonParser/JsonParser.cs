@@ -89,13 +89,32 @@ public static class JsonParser
 
         var slice = jsonText.Slice(currentIndex, nullLength);
 
-        return slice.SequenceEqual("null"u8)
-            ? JsonResult<JsonNull>.Ok(JsonNull.Instance, currentIndex + nullLength)
-            : JsonResult<JsonNull>.Err(
+        if (!slice.SequenceEqual("null"u8))
+        {
+            return JsonResult<JsonNull>.Err(
                 JsonErrorType.InvalidSyntax,
                 $"Expected 'null', received '{Encoding.UTF8.GetString(slice)}'",
                 currentIndex
             );
+        }
+
+        int afterNullIndex = currentIndex + nullLength;
+
+        if (afterNullIndex == jsonText.Length)
+        {
+            return JsonResult<JsonNull>.Ok(JsonNull.Instance, afterNullIndex);
+        }
+
+        return jsonText[afterNullIndex] switch
+        {
+            (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
+                JsonResult<JsonNull>.Ok(JsonNull.Instance, afterNullIndex),
+            _ => JsonResult<JsonNull>.Err(
+                JsonErrorType.InvalidSyntax,
+                "Bools are not allowed to be followed by trailing garbage.",
+                afterNullIndex
+            )
+        };
     }
 
     private static JsonResult<JsonBool> ParseTrue(ReadOnlySpan<byte> jsonText, int currentIndex)
@@ -109,13 +128,32 @@ public static class JsonParser
 
         var slice = jsonText.Slice(currentIndex, trueLength);
 
-        return slice.SequenceEqual("true"u8)
-            ? JsonResult<JsonBool>.Ok(JsonBool.True, currentIndex + trueLength)
-            : JsonResult<JsonBool>.Err(
+        if (!slice.SequenceEqual("true"u8))
+        {
+            return JsonResult<JsonBool>.Err(
                 JsonErrorType.InvalidSyntax,
                 $"Expected 'true', received '{Encoding.UTF8.GetString(slice)}'",
                 currentIndex
             );
+        }
+
+        int afterTrueIndex = currentIndex + trueLength;
+
+        if (afterTrueIndex == jsonText.Length)
+        {
+            return JsonResult<JsonBool>.Ok(JsonBool.True, afterTrueIndex);
+        }
+
+        return jsonText[afterTrueIndex] switch
+        {
+            (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
+                JsonResult<JsonBool>.Ok(JsonBool.True, afterTrueIndex),
+            _ => JsonResult<JsonBool>.Err(
+                JsonErrorType.InvalidSyntax,
+                "Bools are not allowed to be followed by trailing garbage.",
+                afterTrueIndex
+            )
+        };
     }
 
     private static JsonResult<JsonBool> ParseFalse(ReadOnlySpan<byte> jsonText, int currentIndex)
@@ -129,13 +167,32 @@ public static class JsonParser
 
         var slice = jsonText.Slice(currentIndex, falseLength);
 
-        return slice.SequenceEqual("false"u8)
-            ? JsonResult<JsonBool>.Ok(JsonBool.False, currentIndex + falseLength)
-            : JsonResult<JsonBool>.Err(
+        if (!slice.SequenceEqual("false"u8))
+        {
+            return JsonResult<JsonBool>.Err(
                 JsonErrorType.InvalidSyntax,
                 $"Expected 'false', received '{Encoding.UTF8.GetString(slice)}'",
                 currentIndex
             );
+        }
+
+        int afterFalseIndex = currentIndex + falseLength;
+
+        if (afterFalseIndex == jsonText.Length)
+        {
+            return JsonResult<JsonBool>.Ok(JsonBool.False, afterFalseIndex);
+        }
+
+        return jsonText[afterFalseIndex] switch
+        {
+            (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
+                JsonResult<JsonBool>.Ok(JsonBool.False, afterFalseIndex),
+            _ => JsonResult<JsonBool>.Err(
+                JsonErrorType.InvalidSyntax,
+                "Bools are not allowed to be followed by trailing garbage.",
+                afterFalseIndex
+            )
+        };
     }
 
     internal static JsonResult<JsonBool> ParseBool(ReadOnlySpan<byte> jsonText, int currentIndex)

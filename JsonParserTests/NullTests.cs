@@ -23,6 +23,7 @@ public class NullTests
     [InlineData("nul")]
     [InlineData("nil")]
     [InlineData("nothing")]
+    [InlineData("nulll")]
     public void ParseNull_InvalidInputs_ReturnsError(string input)
     {
         var bytes = ToBytes(input);
