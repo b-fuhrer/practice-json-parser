@@ -27,9 +27,13 @@ public class NumberTests
     [Theory]
     [InlineData("1.2.3")]
     [InlineData("1e2e3")]
+    [InlineData("e3")]
     [InlineData("-e10")]
-    [InlineData("0123")] // leading zeros are generally invalid in JSON numbers
+    [InlineData("1e1.3")]
+    [InlineData("0123")]
     [InlineData("--5")]
+    [InlineData(".1")]
+    [InlineData("+1")]
     public void ParseNumber_InvalidFormats_ReturnError(string input)
     {
         var bytes = ToBytes(input);

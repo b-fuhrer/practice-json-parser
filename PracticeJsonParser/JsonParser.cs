@@ -181,13 +181,39 @@ public static class JsonParser
         int exponentAccumulator = 0;
         int exponentSign = 1;
 
-        while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
+        if (newIndex < jsonText.Length && jsonText[newIndex] == (byte)'0')
         {
-            int currentDigit = jsonText[newIndex] - (byte)'0';
-
-            accumulator = accumulator * 10 + currentDigit;
+            if (newIndex + 1 < jsonText.Length && IsByteDigit(jsonText[newIndex + 1]))
+            {
+                return JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidSyntax,
+                    "Numbers are not allowed to have a leading zero.",
+                    newIndex
+                );
+            }
 
             newIndex++;
+        }
+        else // if the integer part starts with zero, no further digits are allowed in the integer part
+        {
+            int integerLoopStartIndex = newIndex;
+            while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
+            {
+                int currentDigit = jsonText[newIndex] - (byte)'0';
+
+                accumulator = accumulator * 10 + currentDigit;
+
+                newIndex++;
+            }
+
+            if (integerLoopStartIndex == newIndex)
+            {
+                return JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidSyntax,
+                    "Number does not contain any digits in the integer part.",
+                    newIndex
+                );
+            }
         }
 
         if (newIndex < jsonText.Length && jsonText[newIndex] == (byte)'.')
