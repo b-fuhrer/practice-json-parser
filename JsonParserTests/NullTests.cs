@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using PracticeJsonParser;
+using PracticeJsonParser.Types;
 namespace JsonParserTests;
 
 public class NullTests

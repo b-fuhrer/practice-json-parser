@@ -58,3 +58,6 @@ nunit-*.xml
 
 # .NET User Settings
 *.DotSettings.user
+
+# BenchmarkDotNet Log Files
+*.log

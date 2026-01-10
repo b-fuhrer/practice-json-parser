@@ -1,7 +1,8 @@
 ﻿using BenchmarkDotNet.Attributes;
-using PracticeJsonParser;
-using System.Text.Json;
 using BenchmarkDotNet.Running;
+using System.Text.Json;
+using PracticeJsonParser;
+using PracticeJsonParser.Types;
 
 BenchmarkRunner.Run<ParserBenchmarks>();
 
