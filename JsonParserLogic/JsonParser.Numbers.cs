@@ -5,144 +5,198 @@ public static partial class JsonParser
 {
     internal static JsonResult<JsonNumber> ParseNumber(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        double accumulator = 0.0;
         (double numberSign, int newIndex) = jsonText[currentIndex] == (byte)'-'
             ? (-1.0, currentIndex + 1)
             : (1.0, currentIndex);
-        int exponentAccumulator = 0;
-        int exponentSign = 1;
 
-        if (newIndex < jsonText.Length && jsonText[newIndex] == (byte)'0')
+        DoubleResult integerPart = ParseIntegerPart(jsonText, newIndex);
+        if (integerPart.Error is { } integerPartError)
         {
-            if (newIndex + 1 < jsonText.Length && IsByteDigit(jsonText[newIndex + 1]))
-            {
-                return JsonResult<JsonNumber>.Err(
-                    JsonErrorType.InvalidSyntax,
-                    "Numbers are not allowed to have a leading zero.",
-                    newIndex
-                );
-            }
-
-            newIndex++;
+            return integerPartError;
         }
-        else // if the integer part starts with zero, no further digits are allowed in the integer part
-        {
-            int integerLoopStartIndex = newIndex;
-            while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
-            {
-                int currentDigit = jsonText[newIndex] - (byte)'0';
 
-                accumulator = accumulator * 10 + currentDigit;
-
-                newIndex++;
-            }
-
-            if (integerLoopStartIndex == newIndex)
-            {
-                return JsonResult<JsonNumber>.Err(
-                    JsonErrorType.InvalidSyntax,
-                    "Number does not contain any digits in the integer part.",
-                    newIndex
-                );
-            }
-        }
+        double accumulator = integerPart.Value;
+        newIndex = integerPart.NewIndex;
 
         if (newIndex < jsonText.Length && jsonText[newIndex] == (byte)'.')
         {
-            newIndex++;
-            int fractionStartIndex = newIndex;
-            double multiplier = 0.1;
+            DoubleResult decimalPart = ParseDecimalPart(jsonText, newIndex, integerPart.Value);
 
-            while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
+            if (decimalPart.Error is { } decimalPartError)
             {
-                int currentDigit = jsonText[newIndex] - (byte)'0';
-
-                accumulator += currentDigit * multiplier;
-
-                multiplier *= 0.1;
-
-                newIndex++;
+                return decimalPartError;
             }
 
-            if (newIndex == fractionStartIndex)
-            {
-                return JsonResult<JsonNumber>.Err(
-                    JsonErrorType.InvalidCharacter,
-                    "A number is not allowed to end with a decimal point.",
-                    newIndex
-                );
-            }
+            accumulator = decimalPart.Value;
+            newIndex = decimalPart.NewIndex;
         }
 
+        int exponent = 0;
         if (newIndex < jsonText.Length && (jsonText[newIndex] == (byte)'e' || jsonText[newIndex] == (byte)'E'))
         {
-            if (newIndex + 1 < jsonText.Length)
+            IntResult exponentPart = ParseExponentPart(jsonText, newIndex);
+            
+            if (exponentPart.Error is { } exponentPartError)
             {
-                (exponentSign, newIndex) = jsonText[newIndex + 1] switch
-                {
-                    (byte)'-' => (-1, newIndex + 2),
-                    (byte)'+' => (1, newIndex + 2),
-                    _ => (1, newIndex + 1)
-                };
-            }
-            else
-            {
-                return JsonResult<JsonNumber>.Err(JsonErrorType.EndOfFile, newIndex);
+                return exponentPartError;
             }
 
-            int exponentStartIndex = newIndex;
+            exponent = exponentPart.Value;
+            newIndex = exponentPart.NewIndex;
+        }
 
-            while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
-            {
-                int currentDigit = jsonText[newIndex] - (byte)'0';
+        double resultNumber = exponent == 0
+            ? numberSign * accumulator
+            : numberSign * accumulator * CalculatePowerOf10(exponent);
 
-                exponentAccumulator = exponentAccumulator * 10 + currentDigit;
+        if (newIndex >= jsonText.Length)
+        {
+            return JsonResult<JsonNumber>.Ok(new JsonNumber(resultNumber), newIndex); // numbers are allowed at EOF
+        }
 
-                newIndex++;
-            }
+        byte lastCharacter = jsonText[newIndex];
 
-            if (newIndex == exponentStartIndex)
-            {
-                return JsonResult<JsonNumber>.Err(
-                    JsonErrorType.InvalidCharacter,
-                    "A number in scientific notation is not allowed to end with an 'e'/'E'.",
+        return lastCharacter switch
+        {
+            (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
+                JsonResult<JsonNumber>.Ok(
+                    new JsonNumber(resultNumber),
                     newIndex
+                ),
+            (byte)'.' => JsonResult<JsonNumber>.Err(
+                JsonErrorType.InvalidCharacter,
+                "A number is only allowed to have one decimal point.",
+                newIndex
+            ),
+            (byte)'e' or (byte)'E' => JsonResult<JsonNumber>.Err(
+                JsonErrorType.InvalidCharacter,
+                "A number is only allowed to have one exponent marker 'e'/'E'.",
+                newIndex
+            ),
+            _ => JsonResult<JsonNumber>.Err(
+                JsonErrorType.InvalidCharacter,
+                $"A number cannot contain the character '{(char)lastCharacter}'.",
+                newIndex
+            )
+        };
+    }
+
+    private static DoubleResult ParseIntegerPart(ReadOnlySpan<byte> jsonText, int index)
+    {
+        double accumulator = 0.0;
+
+        if (index < jsonText.Length && jsonText[index] == (byte)'0')
+        {
+            if (index + 1 < jsonText.Length && IsByteDigit(jsonText[index + 1]))
+            {
+                return DoubleResult.Err(
+                    JsonResult<JsonNumber>.Err(
+                        JsonErrorType.InvalidSyntax,
+                        "Numbers are not allowed to have a leading zero.",
+                        index
+                    )
                 );
             }
+
+            return DoubleResult.Ok(0.0, index + 1);
         }
 
-        double resultNumber = numberSign * accumulator * CalculatePowerOf10(exponentSign * exponentAccumulator);
-
-        if (newIndex < jsonText.Length)
+        int integerLoopStartIndex = index;
+        while (index < jsonText.Length && IsByteDigit(jsonText[index]))
         {
-            byte lastCharacter = jsonText[newIndex];
+            int currentDigit = jsonText[index] - (byte)'0';
 
-            return lastCharacter switch
-            {
-                (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
-                    JsonResult<JsonNumber>.Ok(
-                        new JsonNumber(resultNumber),
-                        newIndex
-                    ),
-                (byte)'.' => JsonResult<JsonNumber>.Err(
-                    JsonErrorType.InvalidCharacter,
-                    "A number is only allowed to have one decimal point.",
-                    newIndex
-                ),
-                (byte)'e' or (byte)'E' => JsonResult<JsonNumber>.Err(
-                    JsonErrorType.InvalidCharacter,
-                    "A number is only allowed to have one exponent marker 'e'/'E'.",
-                    newIndex
-                ),
-                _ => JsonResult<JsonNumber>.Err(
-                    JsonErrorType.InvalidCharacter,
-                    $"A number cannot contain the character '{(char)lastCharacter}'.",
-                    newIndex
+            accumulator = accumulator * 10 + currentDigit;
+
+            index++;
+        }
+
+        if (integerLoopStartIndex == index)
+        {
+            return DoubleResult.Err(
+                JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidSyntax,
+                    "Number does not contain any digits in the integer part.",
+                    index
                 )
+            );
+        }
+
+        return DoubleResult.Ok(accumulator, index);
+    }
+
+    private static DoubleResult ParseDecimalPart(ReadOnlySpan<byte> jsonText, int index, double accumulator)
+    {
+        int newIndex = index + 1;
+        int fractionStartIndex = newIndex;
+        double multiplier = 0.1;
+
+        while (newIndex < jsonText.Length && IsByteDigit(jsonText[newIndex]))
+        {
+            int currentDigit = jsonText[newIndex] - (byte)'0';
+
+            accumulator += currentDigit * multiplier;
+
+            multiplier *= 0.1;
+
+            newIndex++;
+        }
+
+        if (newIndex == fractionStartIndex)
+        {
+            return DoubleResult.Err(JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidCharacter,
+                    "A number is not allowed to end with a decimal point.",
+                    index
+                )
+            );
+        }
+
+        return DoubleResult.Ok(accumulator, newIndex);
+    }
+
+    private static IntResult ParseExponentPart(ReadOnlySpan<byte> jsonText, int index)
+    {
+        int exponentAccumulator = 0;
+        int exponentSign = 1;
+
+        if (index + 1 < jsonText.Length)
+        {
+            (exponentSign, index) = jsonText[index + 1] switch
+            {
+                (byte)'-' => (-1, index + 2),
+                (byte)'+' => (1, index + 2),
+                _ => (1, index + 1)
             };
         }
+        else
+        {
+            return IntResult.Err(JsonResult<JsonNumber>.Err(JsonErrorType.EndOfFile, index));
+        }
 
-        return JsonResult<JsonNumber>.Ok(new JsonNumber(resultNumber), newIndex); // numbers are allowed at end of file
+        int exponentStartIndex = index;
+
+        while (index < jsonText.Length && IsByteDigit(jsonText[index]))
+        {
+            int currentDigit = jsonText[index] - (byte)'0';
+
+            exponentAccumulator = exponentAccumulator * 10 + currentDigit;
+
+            index++;
+        }
+
+        if (index == exponentStartIndex)
+        {
+            return IntResult.Err(
+                JsonResult<JsonNumber>.Err(
+                    JsonErrorType.InvalidCharacter,
+                    "A number in scientific notation is not allowed to end with an 'e'/'E'.",
+                    index
+                )
+            );
+        }
+
+        return IntResult.Ok(exponentSign * exponentAccumulator, index);
     }
 
     private static bool IsByteDigit(byte byteToCheck)
@@ -161,5 +215,17 @@ public static partial class JsonParser
         }
 
         return exponent < 0 ? 1.0 / result : result;
+    }
+
+    private readonly record struct DoubleResult(double Value, int NewIndex, JsonResult<JsonNumber>? Error)
+    {
+        public static DoubleResult Ok(double value, int index) => new(value, index, null);
+        public static DoubleResult Err(JsonResult<JsonNumber> error) => new(0.0, 0, error);
+    }
+
+    private readonly record struct IntResult(int Value, int NewIndex, JsonResult<JsonNumber>? Error)
+    {
+        public static IntResult Ok(int value, int index) => new(value, index, null);
+        public static IntResult Err(JsonResult<JsonNumber> error) => new(0, 0, error);
     }
 }
