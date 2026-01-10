@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>ParserBenchmarks-20260110-220132</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26100.7462/24H2/2024Update/HudsonValley)
+13th Gen Intel Core i7-1355U 1.70GHz, 1 CPU, 12 logical and 10 physical cores
+.NET SDK 10.0.101
+  [Host] : .NET 10.0.1 (10.0.1, 10.0.125.57005), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>Job=InProcess  Toolchain=InProcessEmitToolchain  
+</code></pre>
+
+<table>
+<thead><tr><th>Method  </th><th>FileName   </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>SystemTextJson</td><td>citm_catalog.json</td><td>3.580 ms</td><td>0.0701 ms</td><td>0.1568 ms</td><td>1.00</td><td>0.06</td><td>242.1875</td><td>242.1875</td><td>242.1875</td><td>1024.55 KB</td><td>1.00</td>
+</tr><tr><td>MyParser</td><td>citm_catalog.json</td><td>18.961 ms</td><td>0.3765 ms</td><td>0.7691 ms</td><td>5.31</td><td>0.31</td><td>1187.5000</td><td>718.7500</td><td>218.7500</td><td>6057.62 KB</td><td>5.91</td>
+</tr><tr><td>SystemTextJson</td><td>twitter.json</td><td>1.259 ms</td><td>0.0248 ms</td><td>0.0517 ms</td><td>1.00</td><td>0.06</td><td>140.6250</td><td>140.6250</td><td>140.6250</td><td>513.39 KB</td><td>1.00</td>
+</tr><tr><td>MyParser</td><td>twitter.json</td><td>6.256 ms</td><td>0.1193 ms</td><td>0.1225 ms</td><td>4.98</td><td>0.22</td><td>445.3125</td><td>437.5000</td><td>-</td><td>2746.22 KB</td><td>5.35</td>
+</tr></tbody></table>
+</body>
+</html>
