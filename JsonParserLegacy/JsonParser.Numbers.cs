@@ -1,5 +1,5 @@
-﻿using JsonParserLogic.Types;
-namespace JsonParserLogic;
+﻿using JsonParserLegacy.Types;
+namespace JsonParserLegacy;
 
 public static partial class JsonParser
 {

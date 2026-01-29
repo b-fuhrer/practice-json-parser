@@ -1,5 +1,5 @@
 ﻿using System.Collections.Immutable;
-namespace JsonParserLogic.Types;
+namespace JsonParserLegacy.Types;
 
 public abstract record JsonValue;
 

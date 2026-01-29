@@ -1,7 +1,7 @@
 ﻿using System.Text;
-using JsonParserLogic.Types;
+using JsonParserLegacy.Types;
 
-namespace JsonParserLogic;
+namespace JsonParserLegacy;
 
 public static partial class JsonParser
 {

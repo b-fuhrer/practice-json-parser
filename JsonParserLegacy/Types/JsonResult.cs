@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-namespace JsonParserLogic.Types;
+namespace JsonParserLegacy.Types;
 
 public enum JsonErrorType : byte
 {

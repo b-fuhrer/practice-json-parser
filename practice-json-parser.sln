@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonParserTests", "JsonPars
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonParserBenchmark", "JsonParserBenchmark\JsonParserBenchmark.csproj", "{173AD106-95B7-4BDE-A412-54DD730CB6FC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonParserLegacy", "JsonParserLegacy\JsonParserLegacy.csproj", "{CEA32BE3-7865-4761-B8C7-7B61E32906A9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{173AD106-95B7-4BDE-A412-54DD730CB6FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{173AD106-95B7-4BDE-A412-54DD730CB6FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{173AD106-95B7-4BDE-A412-54DD730CB6FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEA32BE3-7865-4761-B8C7-7B61E32906A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEA32BE3-7865-4761-B8C7-7B61E32906A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEA32BE3-7865-4761-B8C7-7B61E32906A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEA32BE3-7865-4761-B8C7-7B61E32906A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

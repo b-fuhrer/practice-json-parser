@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Collections.Frozen;
-namespace PracticeJsonParser;
+namespace JsonParserLogic;
 
 public enum JsonType : byte
 {

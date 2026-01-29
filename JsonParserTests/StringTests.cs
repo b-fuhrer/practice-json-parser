@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using PracticeJsonParser;
+using JsonParserLogic;
 namespace JsonParserTests;
 
 public class StringTests

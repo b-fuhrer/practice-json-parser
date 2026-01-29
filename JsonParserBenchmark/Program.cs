@@ -1,8 +1,8 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using System.Text.Json;
-using PracticeJsonParser;
-using PracticeJsonParser.Types;
+using JsonParserLogic;
+using JsonParserLogic.Types;
 
 BenchmarkRunner.Run<ParserBenchmarks>();
 
@@ -38,11 +38,13 @@ public class ParserBenchmarks
             : rawBytes;
     }
 
+    /*
     [Benchmark(Baseline = true)]
     public JsonDocument SystemTextJson()
     {
         return JsonDocument.Parse(_jsonBytes);
     }
+    */
 
     [Benchmark]
     public JsonResult<JsonValue> MyParser()
