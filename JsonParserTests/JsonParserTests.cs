@@ -25,7 +25,7 @@ public class JsonParserTests
         var bytes = ToBytes(json);
         var result = JsonParser.Parse(bytes);
 
-        Assert.True(result.Success, $"Failed to parse valid JSON: {json}");
+        Assert.True(result.IsSuccess, $"Failed to parse valid JSON: {json}");
     }
 
     [Theory]
@@ -47,11 +47,11 @@ public class JsonParserTests
         var bytes = ToBytes(json);
         var result = JsonParser.Parse(bytes);
 
-        Assert.False(result.Success, $"Should have failed for input: {json}");
+        Assert.False(result.IsSuccess, $"Should have failed for input: {json}");
 
         if (json.Contains("garbage") || json.EndsWith('x') || json.EndsWith('3'))
         {
-             Assert.Equal(JsonErrorType.InvalidCharacter, result.Error?.Type);
+             Assert.Equal(ErrorType.InvalidCharacter, result.ErrorType);
         }
     }
 
@@ -73,22 +73,22 @@ public class JsonParserTests
         var bytes = ToBytes(json);
         var result = JsonParser.Parse(bytes);
 
-        Assert.True(result.Success);
+        Assert.True(result.IsSuccess);
 
-        var root = (JsonObject)result.Value;
+        var root = result.Object;
 
         // check simple properties
-        Assert.Equal(101.0, ((JsonNumber)root.Fields["id"]).Number);
-        Assert.True(((JsonBool)root.Fields["isActive"]).Bool);
+        Assert.Equal(101.0, root["id"].Number);
+        Assert.True(root["isActive"].Bool);
 
         // check nested array
-        var tags = (JsonArray)root.Fields["tags"];
-        Assert.Equal(2, tags.Elements.Length);
-        Assert.Equal("admin", ((JsonString)tags.Elements[0]).String);
+        var tags = root["tags"];
+        Assert.Equal(2, tags.Array.Length);
+        Assert.Equal("admin", tags.Array[0].String);
 
         // check nested object
-        var meta = (JsonObject)root.Fields["metadata"];
-        Assert.IsType<JsonNull>(meta.Fields["lastLogin"]);
-        Assert.Equal(3.0, ((JsonNumber)meta.Fields["retryCount"]).Number);
+        var meta = root["metadata"].Object;
+        Assert.Equal(JsonType.Null, meta["lastLogin"].Type);
+        Assert.Equal(3.0, meta["retryCount"].Number);
     }
 }

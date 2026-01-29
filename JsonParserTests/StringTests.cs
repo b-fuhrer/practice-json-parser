@@ -24,8 +24,8 @@ public class StringTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseString(bytes, 0);
 
-        Assert.True(result.Success, $"Failed to parse: {input}");
-        Assert.Equal(expected, result.Value.String);
+        Assert.True(result.IsSuccess, $"Failed to parse: {input}");
+        Assert.Equal(expected, result.String);
         Assert.Equal(bytes.Length, result.Index);
     }
 
@@ -39,6 +39,6 @@ public class StringTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseString(bytes, 0);
 
-        Assert.False(result.Success);
+        Assert.False(result.IsSuccess);
     }
 }

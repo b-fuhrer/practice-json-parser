@@ -12,9 +12,9 @@ public class ArrayTests
         var bytes = ToBytes("[]");
         var result = JsonParser.ParseArray(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.IsType<JsonArray>(result.Value);
-        Assert.Empty(result.Value.Elements);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(JsonType.Array, result.Type);
+        Assert.Empty(result.Array);
         Assert.Equal(2, result.Index); // consumed '[' and ']'
     }
 
@@ -27,8 +27,8 @@ public class ArrayTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseArray(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.Equal(expectedCount, result.Value.Elements.Length);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expectedCount, result.Array.Length);
     }
 
     [Fact]
@@ -38,13 +38,13 @@ public class ArrayTests
         var bytes = ToBytes("[[1, 2], [3, 4]]");
         var result = JsonParser.ParseArray(bytes, 0);
 
-        Assert.True(result.Success);
-        var outerArray = result.Value.Elements;
+        Assert.True(result.IsSuccess);
+        var outerArray = result.Array;
 
         Assert.Equal(2, outerArray.Length);
         // verify the first inner array contains 1 and 2
-        var inner1 = (JsonArray)outerArray[0];
-        Assert.Equal(1.0, ((JsonNumber)inner1.Elements[0]).Number);
+        var inner1 = outerArray[0];
+        Assert.Equal(1.0, inner1.Array[0].Number);
     }
 
     [Fact]
@@ -53,10 +53,10 @@ public class ArrayTests
         var bytes = ToBytes("[1, \"text\", true]");
         var result = JsonParser.ParseArray(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.IsType<JsonNumber>(result.Value.Elements[0]);
-        Assert.IsType<JsonString>(result.Value.Elements[1]);
-        Assert.IsType<JsonBool>(result.Value.Elements[2]);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(JsonType.Number, result.Array[0].Type);
+        Assert.Equal(JsonType.String, result.Array[1].Type);
+        Assert.Equal(JsonType.Bool, result.Array[2].Type);
     }
 
     [Theory]
@@ -71,6 +71,6 @@ public class ArrayTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseArray(bytes, 0);
 
-        Assert.False(result.Success, $"Should have failed: {input}");
+        Assert.False(result.IsSuccess, $"Should have failed: {input}");
     }
 }

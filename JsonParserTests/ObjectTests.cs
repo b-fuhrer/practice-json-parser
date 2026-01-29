@@ -12,8 +12,8 @@ public class ObjectTests
         var bytes = ToBytes("{}");
         var result = JsonParser.ParseObject(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.Empty(result.Value.Fields);
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Object);
         Assert.Equal(2, result.Index);
     }
 
@@ -23,12 +23,12 @@ public class ObjectTests
         var bytes = ToBytes("{\"key\": 123}");
         var result = JsonParser.ParseObject(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.True(result.Value.Fields.ContainsKey("key"));
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Object.ContainsKey("key"));
         
-        JsonValue val = result.Value.Fields["key"];
-        Assert.IsType<JsonNumber>(val);
-        Assert.Equal(123.0, ((JsonNumber)val).Number);
+        var val = result.Object["key"];
+        Assert.Equal(JsonType.Number, val.Type);
+        Assert.Equal(123.0, val.Number);
     }
 
     [Theory]
@@ -39,8 +39,8 @@ public class ObjectTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseObject(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.Equal(expectedCount, result.Value.Fields.Count);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expectedCount, result.Object.Count);
     }
 
     [Fact]
@@ -49,13 +49,13 @@ public class ObjectTests
         var bytes = ToBytes("{\"parent\": {\"child\": 1}}");
         var result = JsonParser.ParseObject(bytes, 0);
 
-        Assert.True(result.Success);
+        Assert.True(result.IsSuccess);
         
-        JsonValue parent = result.Value.Fields["parent"];
-        Assert.IsType<JsonObject>(parent);
+        var parent = result.Object["parent"];
+        Assert.Equal(JsonType.Object, parent.Type);
 
-        var childObj = ((JsonObject)parent).Fields;
-        Assert.Equal(1.0, ((JsonNumber)childObj["child"]).Number);
+        var childObj = parent.Object;
+        Assert.Equal(1.0, childObj["child"].Number);
     }
 
     [Theory]
@@ -70,6 +70,6 @@ public class ObjectTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseObject(bytes, 0);
 
-        Assert.False(result.Success, $"Should have failed: {input}");
+        Assert.False(result.IsSuccess, $"Should have failed: {input}");
     }
 }
