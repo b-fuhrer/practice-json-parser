@@ -1,17 +1,17 @@
-﻿using JsonParserLogic.Types;
+﻿using System.Runtime.CompilerServices;
 namespace JsonParserLogic;
 
 public static partial class JsonParser
 {
-    public static JsonResult<JsonValue> Parse(ReadOnlySpan<byte> jsonText)
+    public static JsonNode Parse(ReadOnlySpan<byte> jsonText)
     {
         if (jsonText.Length == 0)
         {
-            return JsonResult<JsonValue>.Err(JsonErrorType.EndOfFile, "JSON has no content.", 0);
+            return JsonNode.Err(ErrorType.EndOfFile, "JSON has no content", 0);
         }
 
-        var parsedJson = ParseIntoValue(jsonText, 0);
-        if (!parsedJson.Success)
+        JsonNode parsedJson = ParseIntoValue(jsonText, 0);
+        if (!parsedJson.IsSuccess)
         {
             return parsedJson;
         }
@@ -20,20 +20,20 @@ public static partial class JsonParser
 
         return skipIndex == jsonText.Length
             ? parsedJson
-            : JsonResult<JsonValue>.Err(
-                JsonErrorType.InvalidCharacter,
+            : JsonNode.Err(
+                ErrorType.InvalidCharacter,
                 "JSON contains garbage after the parsed content.",
                 skipIndex
             );
     }
 
-    private static JsonResult<JsonValue> ParseIntoValue(ReadOnlySpan<byte> jsonText, int currentIndex)
+    private static JsonNode ParseIntoValue(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         int newIndex = SkipWhitespace(jsonText, currentIndex);
         
         if (newIndex == jsonText.Length)
         {
-            return JsonResult<JsonValue>.Err(JsonErrorType.EndOfFile, newIndex);
+            return JsonNode.Err(ErrorType.EndOfFile, newIndex);
         }
         
         byte nextCharacter = jsonText[newIndex];
@@ -46,8 +46,8 @@ public static partial class JsonParser
             (byte)'"' => ParseString(jsonText, newIndex),
             (byte)'[' => ParseArray(jsonText, newIndex),
             (byte)'{' => ParseObject(jsonText, newIndex),
-            _ => JsonResult<JsonValue>.Err(
-                JsonErrorType.InvalidCharacter,
+            _ => JsonNode.Err(
+                ErrorType.InvalidCharacter,
                 $"Invalid character: {nextCharacter}",
                 newIndex
             )
@@ -73,5 +73,11 @@ public static partial class JsonParser
         }
         
         return currentIndex;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsSeparator(byte value)
+    {
+        return value is (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r';
     }
 }

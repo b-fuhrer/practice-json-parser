@@ -24,7 +24,7 @@ public enum ErrorType : byte
 [StructLayout(LayoutKind.Explicit)]
 public readonly struct JsonNode
 {
-    [FieldOffset(0)] public readonly JsonType Tag;
+    [FieldOffset(0)] public readonly JsonType Type;
     [FieldOffset(1)] public readonly bool IsSuccess;
     [FieldOffset(2)] private readonly byte _flags;
     [FieldOffset(3)] public readonly ErrorType ErrorType;
@@ -33,7 +33,7 @@ public readonly struct JsonNode
     [FieldOffset(8)] private readonly bool _bool;
     [FieldOffset(16)] private readonly object? _reference; // for string, array and FrozenDictionary
 
-    public bool IsNull => IsSuccess && Tag == JsonType.Null;
+    public bool IsNull => IsSuccess && Type == JsonType.Null;
     public bool IsError => !IsSuccess;
 
     // success constructors
@@ -69,7 +69,7 @@ public readonly struct JsonNode
     // internal constuctor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private JsonNode(
-        JsonType tag,
+        JsonType type,
         int index,
         bool success = true,
         ErrorType errorType = ErrorType.None,
@@ -79,27 +79,27 @@ public readonly struct JsonNode
     {
         this = default;
 
-        Tag = tag;
+        Type = type;
         Index = index;
         IsSuccess = success;
         ErrorType = errorType;
 
-        if (tag == JsonType.Number) _number = number;
-        else if (tag == JsonType.Bool) _bool = boolean;
+        if (type == JsonType.Number) _number = number;
+        else if (type == JsonType.Bool) _bool = boolean;
 
         _reference = reference;
     }
 
     // access helpers
-    public double Number => IsSuccess && Tag == JsonType.Number
+    public double Number => IsSuccess && Type == JsonType.Number
         ? _number
         : throw ThrowInvalidAccess(JsonType.Number);
 
-    public bool Bool => IsSuccess && Tag == JsonType.Bool
+    public bool Bool => IsSuccess && Type == JsonType.Bool
         ? _bool
         : throw ThrowInvalidAccess(JsonType.Bool);
 
-    public string String => IsSuccess && Tag == JsonType.String && _reference != null
+    public string String => IsSuccess && Type == JsonType.String && _reference != null
         ? Unsafe.As<object, string>(ref Unsafe.AsRef(in _reference))
         : throw ThrowInvalidAccess(JsonType.String);
 
@@ -107,16 +107,16 @@ public readonly struct JsonNode
         ? Unsafe.As<object, string>(ref Unsafe.AsRef(in _reference))
         : string.Empty;
 
-    public JsonNode[] Array => IsSuccess && Tag == JsonType.Array && _reference != null
+    public JsonNode[] Array => IsSuccess && Type == JsonType.Array && _reference != null
         ? Unsafe.As<object, JsonNode[]>(ref Unsafe.AsRef(in _reference))
         : throw ThrowInvalidAccess(JsonType.Array);
 
-    public FrozenDictionary<string, JsonNode> Object => IsSuccess && Tag == JsonType.Object && _reference != null
+    public FrozenDictionary<string, JsonNode> Object => IsSuccess && Type == JsonType.Object && _reference != null
         ? Unsafe.As<object, FrozenDictionary<string, JsonNode>>(ref Unsafe.AsRef(in _reference))
         : throw ThrowInvalidAccess(JsonType.Object);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private InvalidOperationException ThrowInvalidAccess(JsonType expected) => new InvalidOperationException(
-        $"Invalid Access: Expected '{expected}', but node is '{(!IsSuccess ? "Error" : Tag.ToString())}'."
+        $"Invalid Access: Expected '{expected}', but node is '{(!IsSuccess ? "Error" : Type.ToString())}'."
     );
 }
