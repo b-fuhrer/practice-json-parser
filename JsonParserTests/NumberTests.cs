@@ -19,8 +19,8 @@ public class NumberTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseNumber(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.Equal(expected, result.Value.Number);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expected, result.Number);
         Assert.Equal(bytes.Length, result.Index);
     }
 
@@ -39,6 +39,6 @@ public class NumberTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseNumber(bytes, 0);
 
-        Assert.False(result.Success);
+        Assert.False(result.IsSuccess);
     }
 }

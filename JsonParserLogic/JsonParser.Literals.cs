@@ -18,7 +18,7 @@ public static partial class JsonParser
         {
             return JsonNode.Err(
                 ErrorType.InvalidSyntax,
-                $"Expected '{Encoding.UTF8.GetString(nullLiteral)}', received '{Encoding.UTF8.GetString(slice)}'",
+                $"Expected '{Encoding.UTF8.GetString(nullLiteral)}', received '{Encoding.UTF8.GetString(slice)}'.",
                 currentIndex
             );
         }
@@ -36,7 +36,7 @@ public static partial class JsonParser
             ? JsonNode.OkNull(afterLiteralIndex)
             : JsonNode.Err(
                 ErrorType.InvalidSyntax,
-                "Null is not allowed to be followed by trailing garbage",
+                "Null is not allowed to be followed by trailing garbage.",
                 afterLiteralIndex
             );
     }
@@ -51,7 +51,7 @@ public static partial class JsonParser
             (byte)'f' => ParseBoolValue(jsonText, currentIndex, false, "false"u8),
             _ => JsonNode.Err(
                 ErrorType.InvalidSyntax,
-                $"Expected 't' (true) or 'f' (false), received '{firstCharacter}'",
+                $"Expected 't' (true) or 'f' (false), received '{firstCharacter}'.",
                 currentIndex
             )
         };
@@ -76,7 +76,7 @@ public static partial class JsonParser
         {
             return JsonNode.Err(
                 ErrorType.InvalidSyntax,
-                $"Expected '{Encoding.UTF8.GetString(boolLiteral)}', received '{Encoding.UTF8.GetString(slice)}'",
+                $"Expected '{Encoding.UTF8.GetString(boolLiteral)}', received '{Encoding.UTF8.GetString(slice)}'.",
                 currentIndex
             );
         }
@@ -94,7 +94,7 @@ public static partial class JsonParser
             ? JsonNode.OkBool(successReturnValue, afterLiteralIndex)
             : JsonNode.Err(
                 ErrorType.InvalidSyntax,
-                "Bools are not allowed to be followed by trailing garbage",
+                "Bools are not allowed to be followed by trailing garbage.",
                 afterLiteralIndex
             );
     }

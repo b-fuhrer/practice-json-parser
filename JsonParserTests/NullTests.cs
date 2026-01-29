@@ -12,8 +12,8 @@ public class NullTests
         var bytes = ToBytes("null");
         var result = JsonParser.ParseNull(bytes, 0);
 
-        Assert.True(result.Success);
-        Assert.IsType<JsonNull>(result.Value);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(JsonType.Null, result.Type);
         Assert.Equal(4, result.Index);
     }
 
@@ -29,6 +29,6 @@ public class NullTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseNull(bytes, 0);
 
-        Assert.False(result.Success);
+        Assert.False(result.IsSuccess);
     }
 }

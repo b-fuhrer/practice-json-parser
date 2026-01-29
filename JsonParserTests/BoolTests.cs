@@ -14,8 +14,8 @@ public class BoolTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseBool(bytes, 0);
 
-        Assert.True(result.Success, $"Failed to parse: {input}");
-        Assert.Equal(expected, result.Value.Bool);
+        Assert.True(result.IsSuccess, $"Failed to parse: {input}");
+        Assert.Equal(expected, result.Bool);
         Assert.Equal(bytes.Length, result.Index);
     }
 
@@ -31,6 +31,6 @@ public class BoolTests
         var bytes = ToBytes(input);
         var result = JsonParser.ParseBool(bytes, 0);
 
-        Assert.False(result.Success, $"Should have failed for input: {input}");
+        Assert.False(result.IsSuccess, $"Should have failed for input: {input}");
     }
 }
