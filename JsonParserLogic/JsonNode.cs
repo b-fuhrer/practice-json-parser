@@ -1,6 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Collections.Frozen;
+using System.Collections.Immutable;
+
 namespace JsonParserLogic;
 
 public enum JsonType : byte
@@ -50,7 +52,7 @@ public readonly struct JsonNode
     public static JsonNode OkString(string value, int index) => new JsonNode(JsonType.String, index, reference: value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode OkArray(JsonNode[] items, int index) =>
+    public static JsonNode OkArray(ImmutableArray<JsonNode> items, int index) =>
         new JsonNode(JsonType.Array, index, reference: items);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -115,8 +117,8 @@ public readonly struct JsonNode
         ? Unsafe.As<object, string>(ref Unsafe.AsRef(in _reference))
         : string.Empty;
 
-    public JsonNode[] Array => IsSuccess && Type == JsonType.Array && _reference != null
-        ? Unsafe.As<object, JsonNode[]>(ref Unsafe.AsRef(in _reference))
+    public ImmutableArray<JsonNode> Array => IsSuccess && Type == JsonType.Array && _reference != null
+        ? Unsafe.As<object, ImmutableArray<JsonNode>>(ref Unsafe.AsRef(in _reference))
         : throw ThrowInvalidAccess(JsonType.Array);
 
     public FrozenDictionary<string, JsonNode> Object => IsSuccess && Type == JsonType.Object && _reference != null

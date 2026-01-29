@@ -1,55 +1,56 @@
 ﻿using System.Collections.Immutable;
+
 namespace JsonParserLogic;
 
 public static partial class JsonParser
 {
-    internal static JsonResult<JsonArray> ParseArray(ReadOnlySpan<byte> jsonText, int currentIndex)
+    internal static JsonNode ParseArray(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        ImmutableArray<JsonValue>.Builder arrayBuilder = ImmutableArray.CreateBuilder<JsonValue>();
+        ImmutableArray<JsonNode>.Builder arrayBuilder = ImmutableArray.CreateBuilder<JsonNode>();
 
         // currentIndex is index of opening bracket '['
         int newIndex = SkipWhitespace(jsonText, currentIndex + 1);
         if (newIndex == jsonText.Length)
         {
-            return JsonResult<JsonArray>.Err(JsonErrorType.EndOfFile, newIndex);
+            return JsonNode.Err(ErrorType.EndOfFile, newIndex);
         }
 
         if (jsonText[newIndex] == (byte)']')
         {
-            return JsonResult<JsonArray>.Ok(new JsonArray([]), newIndex + 1);
+            return JsonNode.OkArray([], newIndex + 1);
         }
 
         while (newIndex < jsonText.Length)
         {
-            var parsedValue = ParseIntoValue(jsonText, newIndex);
-            if (!parsedValue.Success)
+            JsonNode parsedValue = ParseIntoValue(jsonText, newIndex);
+            if (parsedValue.IsError)
             {
-                return JsonResult<JsonArray>.Err(
-                    parsedValue.Error.Value.Type,
-                    parsedValue.Error.Value.Message,
+                return JsonNode.Err(
+                    parsedValue.ErrorType,
+                    parsedValue.ErrorMessage,
                     parsedValue.Index
                 );
             }
 
-            arrayBuilder.Add(parsedValue.Value);
+            arrayBuilder.Add(parsedValue);
 
             int skipIndex = SkipWhitespace(jsonText, parsedValue.Index);
             if (skipIndex == jsonText.Length)
             {
-                return JsonResult<JsonArray>.Err(JsonErrorType.EndOfFile, skipIndex);
+                return JsonNode.Err(ErrorType.EndOfFile, skipIndex);
             }
 
             byte characterAfterWhitespace = jsonText[skipIndex];
 
             if (characterAfterWhitespace == (byte)']')
             {
-                return JsonResult<JsonArray>.Ok(new JsonArray(arrayBuilder.ToImmutableArray()), skipIndex + 1);
+                return JsonNode.OkArray(arrayBuilder.ToImmutableArray(), skipIndex + 1);
             }
 
             if (characterAfterWhitespace != (byte)',')
             {
-                return JsonResult<JsonArray>.Err(
-                    JsonErrorType.InvalidSyntax,
+                return JsonNode.Err(
+                    ErrorType.InvalidSyntax,
                     $"Array elements must be separated by ',' character, found '{(char)characterAfterWhitespace}'.",
                     skipIndex
                 );
@@ -58,6 +59,6 @@ public static partial class JsonParser
             newIndex = skipIndex + 1;
         }
 
-        return JsonResult<JsonArray>.Err(JsonErrorType.EndOfFile, newIndex);
+        return JsonNode.Err(ErrorType.EndOfFile, newIndex);
     }
 }
