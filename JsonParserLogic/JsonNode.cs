@@ -59,12 +59,20 @@ public readonly struct JsonNode
 
     // error constructors
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode Err(ErrorType type, string message, int index) =>
+    public static JsonNode Err(ErrorType type, string? message, int index) =>
         new JsonNode(JsonType.Null, index, success: false, errorType: type, reference: message);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static JsonNode Err(ErrorType type, string message) =>
+        new JsonNode(JsonType.Null, 0, success: false, errorType: type, reference: message);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static JsonNode Err(ErrorType type, int index) =>
         new JsonNode(JsonType.Null, index, success: false, errorType: type, reference: null);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static JsonNode Err(ErrorType type) =>
+        new JsonNode(JsonType.Null, 0, success: false, errorType: type, reference: null);
 
     // internal constuctor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
