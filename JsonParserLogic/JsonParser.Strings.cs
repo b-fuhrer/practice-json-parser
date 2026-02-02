@@ -1,5 +1,4 @@
 ﻿using System.Text;
-
 namespace JsonParserLogic;
 
 public static partial class JsonParser

@@ -1,12 +1,10 @@
-﻿using System.Collections.Immutable;
-
-namespace JsonParserLogic;
+﻿namespace JsonParserLogic;
 
 public static partial class JsonParser
 {
     internal static JsonNode ParseArray(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        ImmutableArray<JsonNode>.Builder arrayBuilder = ImmutableArray.CreateBuilder<JsonNode>();
+        var arrayBuilder = new List<JsonNode>();
 
         // currentIndex is index of opening bracket '['
         int newIndex = SkipWhitespace(jsonText, currentIndex + 1);
@@ -44,7 +42,7 @@ public static partial class JsonParser
 
             if (characterAfterWhitespace == (byte)']')
             {
-                return JsonNode.OkArray(arrayBuilder.ToImmutableArray(), skipIndex + 1);
+                return JsonNode.OkArray(arrayBuilder.ToArray(), skipIndex + 1);
             }
 
             if (characterAfterWhitespace != (byte)',')

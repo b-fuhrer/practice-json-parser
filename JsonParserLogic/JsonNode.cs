@@ -52,7 +52,7 @@ public readonly struct JsonNode
     public static JsonNode OkString(string value, int index) => new JsonNode(JsonType.String, index, reference: value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode OkArray(ImmutableArray<JsonNode> items, int index) =>
+    public static JsonNode OkArray(JsonNode[] items, int index) =>
         new JsonNode(JsonType.Array, index, reference: items);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

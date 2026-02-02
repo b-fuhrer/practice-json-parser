@@ -1,5 +1,4 @@
 ﻿using System.Collections.Frozen;
-
 namespace JsonParserLogic;
 
 public static partial class JsonParser
