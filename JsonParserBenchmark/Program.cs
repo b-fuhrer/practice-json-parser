@@ -38,13 +38,11 @@ public class ParserBenchmarks
             : rawBytes;
     }
 
-    /*
     [Benchmark(Baseline = true)]
     public JsonDocument SystemTextJson()
     {
         return JsonDocument.Parse(_jsonBytes);
     }
-    */
 
     [Benchmark]
     public JsonNode MyParser()
@@ -52,11 +50,9 @@ public class ParserBenchmarks
         return JsonParser.Parse(_jsonBytes);
     }
 
-    /*
     [Benchmark]
     public JsonResult<JsonValue> LegacyParser()
     {
         return JsonParserLegacy.JsonParser.Parse(_jsonBytes);
     }
-    */
 }

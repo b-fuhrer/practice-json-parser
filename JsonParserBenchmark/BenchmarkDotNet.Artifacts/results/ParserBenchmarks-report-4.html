@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>ParserBenchmarks-20260203-174343</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.7623/25H2/2025Update/HudsonValley2)
+13th Gen Intel Core i7-1355U 1.70GHz, 1 CPU, 12 logical and 10 physical cores
+.NET SDK 10.0.102
+  [Host] : .NET 10.0.2 (10.0.2, 10.0.225.61305), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>Job=InProcess  Toolchain=InProcessEmitToolchain  
+</code></pre>
+
+<table>
+<thead><tr><th>Method  </th><th>FileName   </th><th>Mean </th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>SystemTextJson</td><td>citm_catalog.json</td><td>2,064.5 &mu;s</td><td>14.54 &mu;s</td><td>12.14 &mu;s</td><td>1.00</td><td>0.01</td><td>246.0938</td><td>246.0938</td><td>246.0938</td><td>1024.62 KB</td><td>1.00</td>
+</tr><tr><td>MyParser</td><td>citm_catalog.json</td><td>9,716.2 &mu;s</td><td>153.29 &mu;s</td><td>128.01 &mu;s</td><td>4.71</td><td>0.07</td><td>859.3750</td><td>468.7500</td><td>78.1250</td><td>4874.95 KB</td><td>4.76</td>
+</tr><tr><td>LegacyParser</td><td>citm_catalog.json</td><td>11,915.1 &mu;s</td><td>215.10 &mu;s</td><td>201.21 &mu;s</td><td>5.77</td><td>0.10</td><td>1218.7500</td><td>734.3750</td><td>234.3750</td><td>6057.63 KB</td><td>5.91</td>
+</tr><tr><td>SystemTextJson</td><td>twitter.json</td><td>722.1 &mu;s</td><td>4.22 &mu;s</td><td>3.74 &mu;s</td><td>1.00</td><td>0.01</td><td>141.6016</td><td>141.6016</td><td>141.6016</td><td>513.4 KB</td><td>1.00</td>
+</tr><tr><td>MyParser</td><td>twitter.json</td><td>5,943.3 &mu;s</td><td>113.99 &mu;s</td><td>106.62 &mu;s</td><td>8.23</td><td>0.15</td><td>445.3125</td><td>250.0000</td><td>62.5000</td><td>2385.27 KB</td><td>4.65</td>
+</tr><tr><td>LegacyParser</td><td>twitter.json</td><td>3,691.9 &mu;s</td><td>21.89 &mu;s</td><td>18.28 &mu;s</td><td>5.11</td><td>0.04</td><td>445.3125</td><td>441.4063</td><td>-</td><td>2746.2 KB</td><td>5.35</td>
+</tr></tbody></table>
+</body>
+</html>
