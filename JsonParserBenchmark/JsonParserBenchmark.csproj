@@ -16,6 +16,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\JsonParserLegacy\JsonParserLegacy.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Include="JsonFiles\*.json" />
     </ItemGroup>
 

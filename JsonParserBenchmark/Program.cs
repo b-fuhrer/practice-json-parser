@@ -1,6 +1,7 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using System.Text.Json;
+using JsonParserLegacy.Types;
 using JsonParserLogic;
 
 BenchmarkRunner.Run<ParserBenchmarks>();
@@ -50,4 +51,12 @@ public class ParserBenchmarks
     {
         return JsonParser.Parse(_jsonBytes);
     }
+
+    /*
+    [Benchmark]
+    public JsonResult<JsonValue> LegacyParser()
+    {
+        return JsonParserLegacy.JsonParser.Parse(_jsonBytes);
+    }
+    */
 }
