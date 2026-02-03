@@ -1,11 +1,13 @@
-﻿using System.Collections.Frozen;
+﻿using System.Collections.Immutable;
+
 namespace JsonParserLogic;
 
 public static partial class JsonParser
 {
     internal static JsonNode ParseObject(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        var dictionaryBuilder = new Dictionary<string, JsonNode>();
+        ImmutableDictionary<string, JsonNode>.Builder dictionaryBuilder =
+            ImmutableDictionary.CreateBuilder<string, JsonNode>();
 
         // current index is the index of the opening curly brace '{'
         int newIndex = SkipWhitespace(jsonText, currentIndex + 1);
@@ -16,7 +18,7 @@ public static partial class JsonParser
 
         if (jsonText[newIndex] == (byte)'}')
         {
-            return JsonNode.OkObject(FrozenDictionary<string, JsonNode>.Empty, newIndex + 1);
+            return JsonNode.OkObject(ImmutableDictionary<string, JsonNode>.Empty, newIndex + 1);
         }
 
         while (newIndex < jsonText.Length)
@@ -92,7 +94,7 @@ public static partial class JsonParser
             if (characterAfterWhitespace == (byte)'}')
             {
                 return JsonNode.OkObject(
-                    dictionaryBuilder.ToFrozenDictionary(),
+                    dictionaryBuilder.ToImmutableDictionary(),
                     skipAfterValueIndex + 1
                 );
             }

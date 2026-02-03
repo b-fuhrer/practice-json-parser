@@ -56,7 +56,7 @@ public readonly struct JsonNode
         new JsonNode(JsonType.Array, index, reference: items);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode OkObject(FrozenDictionary<string, JsonNode> items, int index) =>
+    public static JsonNode OkObject(ImmutableDictionary<string, JsonNode> items, int index) =>
         new JsonNode(JsonType.Object, index, reference: items);
 
     // error constructors
@@ -121,8 +121,8 @@ public readonly struct JsonNode
         ? Unsafe.As<object, ImmutableArray<JsonNode>>(ref Unsafe.AsRef(in _reference))
         : throw ThrowInvalidAccess(JsonType.Array);
 
-    public FrozenDictionary<string, JsonNode> Object => IsSuccess && Type == JsonType.Object && _reference != null
-        ? Unsafe.As<object, FrozenDictionary<string, JsonNode>>(ref Unsafe.AsRef(in _reference))
+    public ImmutableDictionary<string, JsonNode> Object => IsSuccess && Type == JsonType.Object && _reference != null
+        ? Unsafe.As<object, ImmutableDictionary<string, JsonNode>>(ref Unsafe.AsRef(in _reference))
         : throw ThrowInvalidAccess(JsonType.Object);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
