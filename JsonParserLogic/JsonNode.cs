@@ -23,17 +23,15 @@ public enum ErrorType : byte
     InvalidSyntax
 }
 
-[StructLayout(LayoutKind.Explicit)]
 public readonly struct JsonNode
 {
-    [FieldOffset(0)] public readonly JsonType Type;
-    [FieldOffset(1)] public readonly bool IsSuccess;
-    [FieldOffset(2)] private readonly byte _flags;
-    [FieldOffset(3)] public readonly ErrorType ErrorType;
-    [FieldOffset(4)] public readonly int Index;
-    [FieldOffset(8)] private readonly double _number;
-    [FieldOffset(8)] private readonly bool _bool;
-    [FieldOffset(16)] private readonly object? _reference; // for string, array and FrozenDictionary
+    public readonly JsonType Type;
+    public readonly bool IsSuccess;
+    public readonly ErrorType ErrorType;
+    private readonly bool _bool;
+    public readonly int Index;
+    private readonly double _number;
+    private readonly object? _reference; // for string, array and object
 
     public bool IsNull => IsSuccess && Type == JsonType.Null;
     public bool IsError => !IsSuccess;
@@ -83,20 +81,16 @@ public readonly struct JsonNode
         int index,
         bool success = true,
         ErrorType errorType = ErrorType.None,
-        double number = 0,
         bool boolean = false,
+        double number = 0,
         object? reference = null)
     {
-        this = default;
-
         Type = type;
         Index = index;
         IsSuccess = success;
         ErrorType = errorType;
-
-        if (type == JsonType.Number) _number = number;
-        else if (type == JsonType.Bool) _bool = boolean;
-
+        _number = number;
+        _bool = boolean;
         _reference = reference;
     }
 
