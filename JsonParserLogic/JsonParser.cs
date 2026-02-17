@@ -7,7 +7,7 @@ public static partial class JsonParser
     {
         if (jsonText.Length == 0)
         {
-            return JsonNode.Err(ErrorType.EndOfFile, "JSON has no content", 0);
+            return JsonNode.Err(JsonError.EndOfFile, "JSON has no content", 0);
         }
 
         JsonNode parsedJson = ParseIntoValue(jsonText, 0);
@@ -21,7 +21,7 @@ public static partial class JsonParser
         return skipIndex == jsonText.Length
             ? parsedJson
             : JsonNode.Err(
-                ErrorType.InvalidCharacter,
+                JsonError.InvalidCharacter,
                 "JSON contains garbage after the parsed content.",
                 skipIndex
             );
@@ -33,7 +33,7 @@ public static partial class JsonParser
         
         if (newIndex == jsonText.Length)
         {
-            return JsonNode.Err(ErrorType.EndOfFile, newIndex);
+            return JsonNode.Err(JsonError.EndOfFile, newIndex);
         }
         
         byte nextCharacter = jsonText[newIndex];
@@ -47,7 +47,7 @@ public static partial class JsonParser
             (byte)'[' => ParseArray(jsonText, newIndex),
             (byte)'{' => ParseObject(jsonText, newIndex),
             _ => JsonNode.Err(
-                ErrorType.InvalidCharacter,
+                JsonError.InvalidCharacter,
                 $"Invalid character: {nextCharacter}",
                 newIndex
             )

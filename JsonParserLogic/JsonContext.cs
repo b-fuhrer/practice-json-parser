@@ -15,7 +15,7 @@ public enum JsonType : byte
     Object
 }
 
-public enum ErrorType : byte
+public enum JsonError : byte
 {
     None,
     EndOfFile,
@@ -122,9 +122,35 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public uint AddArrayElement(bool boolean)
+    {
+        var element = new ArrayElement(JsonType.Bool, boolean ? 1u : 0u);
+
+        if (ArrayElementCount < ArrayElements.Length)
+        {
+            ArrayElements[ArrayElementCount] = element;
+            return ArrayElementCount++;
+        }
+        return ResizeAndAddArrayElement(element);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint AddObjectElement(JsonType valueType, uint keyIndex, uint valueIndex)
     {
         var element = new ObjectElement(valueType, keyIndex, valueIndex);
+
+        if (ObjectElementCount < ObjectElements.Length)
+        {
+            ObjectElements[ObjectElementCount] = element;
+            return ObjectElementCount++;
+        }
+        return ResizeAndAddObjectElement(element);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public uint AddObjectElement(uint keyIndex, bool boolean)
+    {
+        var element = new ObjectElement(JsonType.Bool, keyIndex, boolean ? 1u : 0u);
 
         if (ObjectElementCount < ObjectElements.Length)
         {
@@ -223,8 +249,28 @@ public struct ObjectElement
     }
 }
 
-public readonly struct JsonAccess(JsonContext context, uint index)
+[StructLayout(LayoutKind.Sequential, Size = 16)]
+public readonly record struct JsonNode(
+    JsonContext? Context,
+    uint Index,
+    JsonType Type, // success: result type, error: parsing type context
+    JsonError Error
+)
 {
-    public readonly JsonContext Context = context;
-    public readonly uint Index = index;
+    // accessors
+    public bool IsSuccess => Error == JsonError.None;
+    public bool IsError => Error != JsonError.None;
+
+    // constructors
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static JsonNode Ok(JsonContext context, uint index, JsonType type)
+    {
+        return new JsonNode(context, index, type, JsonError.None);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static JsonNode Err(JsonError error, JsonType type)
+    {
+        return new JsonNode(null, 0, type, error);
+    }
 }

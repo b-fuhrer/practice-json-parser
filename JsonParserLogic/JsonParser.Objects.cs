@@ -13,7 +13,7 @@ public static partial class JsonParser
         int newIndex = SkipWhitespace(jsonText, currentIndex + 1);
         if (newIndex == jsonText.Length)
         {
-            return JsonNode.Err(ErrorType.EndOfFile, newIndex);
+            return JsonNode.Err(JsonError.EndOfFile, newIndex);
         }
 
         if (jsonText[newIndex] == (byte)'}')
@@ -26,13 +26,13 @@ public static partial class JsonParser
             newIndex = SkipWhitespace(jsonText, newIndex);
             if (newIndex == jsonText.Length)
             {
-                return JsonNode.Err(ErrorType.EndOfFile, newIndex);
+                return JsonNode.Err(JsonError.EndOfFile, newIndex);
             }
 
             if (jsonText[newIndex] != (byte)'"')
             {
                 return JsonNode.Err(
-                    ErrorType.InvalidSyntax,
+                    JsonError.InvalidSyntax,
                     $"Object keys must be strings and therefore begin with '\"', found '{(char)jsonText[newIndex]}'.",
                     newIndex
                 );
@@ -42,7 +42,7 @@ public static partial class JsonParser
             if (parsedKey.IsError)
             {
                 return JsonNode.Err(
-                    parsedKey.ErrorType,
+                    parsedKey.JsonError,
                     parsedKey.ErrorMessage,
                     parsedKey.Index
                 );
@@ -51,13 +51,13 @@ public static partial class JsonParser
             int skipAfterKeyIndex = SkipWhitespace(jsonText, parsedKey.Index);
             if (skipAfterKeyIndex == jsonText.Length)
             {
-                return JsonNode.Err(ErrorType.EndOfFile, skipAfterKeyIndex);
+                return JsonNode.Err(JsonError.EndOfFile, skipAfterKeyIndex);
             }
 
             if (jsonText[skipAfterKeyIndex] != (byte)':')
             {
                 return JsonNode.Err(
-                    ErrorType.InvalidSyntax,
+                    JsonError.InvalidSyntax,
                     $"Object keys and values must be separated by ':', found '{(char)jsonText[skipAfterKeyIndex]}'.",
                     skipAfterKeyIndex
                 );
@@ -67,7 +67,7 @@ public static partial class JsonParser
             if (parsedValue.IsError)
             {
                 return JsonNode.Err(
-                    parsedValue.ErrorType,
+                    parsedValue.JsonError,
                     parsedValue.ErrorMessage,
                     parsedValue.Index
                 );
@@ -76,7 +76,7 @@ public static partial class JsonParser
             if (dictionaryBuilder.ContainsKey(parsedKey.String))
             {
                 return JsonNode.Err(
-                    ErrorType.InvalidSyntax,
+                    JsonError.InvalidSyntax,
                     $"Duplicate key '{parsedKey.String}' found in object.",
                     parsedKey.Index
                 );
@@ -86,7 +86,7 @@ public static partial class JsonParser
             int skipAfterValueIndex = SkipWhitespace(jsonText, parsedValue.Index);
             if (skipAfterValueIndex == jsonText.Length)
             {
-                return JsonNode.Err(ErrorType.EndOfFile, skipAfterValueIndex);
+                return JsonNode.Err(JsonError.EndOfFile, skipAfterValueIndex);
             }
 
             byte characterAfterWhitespace = jsonText[skipAfterValueIndex];
@@ -102,7 +102,7 @@ public static partial class JsonParser
             if (characterAfterWhitespace != (byte)',')
             {
                 return JsonNode.Err(
-                    ErrorType.InvalidSyntax,
+                    JsonError.InvalidSyntax,
                     $"Object key-value pairds must be separated by ',' character, found '{(char)characterAfterWhitespace}'.",
                     skipAfterValueIndex
                 );
@@ -111,6 +111,6 @@ public static partial class JsonParser
             newIndex = skipAfterValueIndex + 1;
         }
 
-        return JsonNode.Err(ErrorType.EndOfFile, newIndex);
+        return JsonNode.Err(JsonError.EndOfFile, newIndex);
     }
 }

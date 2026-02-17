@@ -10,7 +10,7 @@ public static partial class JsonParser
         int newIndex = SkipWhitespace(jsonText, currentIndex + 1);
         if (newIndex == jsonText.Length)
         {
-            return JsonNode.Err(ErrorType.EndOfFile, newIndex);
+            return JsonNode.Err(JsonError.EndOfFile, newIndex);
         }
 
         if (jsonText[newIndex] == (byte)']')
@@ -24,7 +24,7 @@ public static partial class JsonParser
             if (parsedValue.IsError)
             {
                 return JsonNode.Err(
-                    parsedValue.ErrorType,
+                    parsedValue.JsonError,
                     parsedValue.ErrorMessage,
                     parsedValue.Index
                 );
@@ -35,7 +35,7 @@ public static partial class JsonParser
             int skipIndex = SkipWhitespace(jsonText, parsedValue.Index);
             if (skipIndex == jsonText.Length)
             {
-                return JsonNode.Err(ErrorType.EndOfFile, skipIndex);
+                return JsonNode.Err(JsonError.EndOfFile, skipIndex);
             }
 
             byte characterAfterWhitespace = jsonText[skipIndex];
@@ -48,7 +48,7 @@ public static partial class JsonParser
             if (characterAfterWhitespace != (byte)',')
             {
                 return JsonNode.Err(
-                    ErrorType.InvalidSyntax,
+                    JsonError.InvalidSyntax,
                     $"Array elements must be separated by ',' character, found '{(char)characterAfterWhitespace}'.",
                     skipIndex
                 );
@@ -57,6 +57,6 @@ public static partial class JsonParser
             newIndex = skipIndex + 1;
         }
 
-        return JsonNode.Err(ErrorType.EndOfFile, newIndex);
+        return JsonNode.Err(JsonError.EndOfFile, newIndex);
     }
 }
