@@ -251,7 +251,7 @@ public struct ObjectElement
 
 [StructLayout(LayoutKind.Sequential, Size = 16)]
 public readonly record struct JsonNode(
-    JsonContext? Context,
+    JsonContext Context,
     uint Index,
     JsonType Type, // success: result type, error: parsing type context
     JsonError Error
@@ -263,14 +263,38 @@ public readonly record struct JsonNode(
 
     // constructors
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode Ok(JsonContext context, uint index, JsonType type)
+    public static JsonNode Ok(JsonContext context, JsonType type, uint index)
     {
         return new JsonNode(context, index, type, JsonError.None);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode Err(JsonError error, JsonType type)
+    public static JsonNode Err(JsonContext context, JsonError error, JsonType type)
     {
-        return new JsonNode(null, 0, type, error);
+        return new JsonNode(context, 0, type, error);
+    }
+}
+
+[StructLayout(LayoutKind.Sequential, Size = 12)]
+public readonly record struct JsonResult(
+    uint ElementIndex,
+    int PositionIndex,
+    JsonType Type,
+    JsonError Error
+)
+{
+    // accessors
+    public bool IsSuccess => Error == JsonError.None;
+    public bool IsError => Error != JsonError.None;
+
+    // constructors
+    public static JsonResult Ok(JsonType type, uint elementIndex, int nextIndex)
+    {
+        return new JsonResult(elementIndex, nextIndex, type, JsonError.None);
+    }
+
+    public static JsonResult Err(JsonError error, JsonType type, int currentIndex)
+    {
+        return new JsonResult(0, currentIndex, type, error);
     }
 }
