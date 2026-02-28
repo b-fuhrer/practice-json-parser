@@ -105,6 +105,7 @@ public class JsonContext : IDisposable
             Strings[StringCount] = value;
             return StringCount++;
         }
+
         return ResizeAndAddString(value);
     }
 
@@ -118,6 +119,7 @@ public class JsonContext : IDisposable
             ArrayElements[ArrayElementCount] = element;
             return ArrayElementCount++;
         }
+
         return ResizeAndAddArrayElement(element);
     }
 
@@ -131,6 +133,7 @@ public class JsonContext : IDisposable
             ArrayElements[ArrayElementCount] = element;
             return ArrayElementCount++;
         }
+
         return ResizeAndAddArrayElement(element);
     }
 
@@ -144,6 +147,7 @@ public class JsonContext : IDisposable
             ObjectElements[ObjectElementCount] = element;
             return ObjectElementCount++;
         }
+
         return ResizeAndAddObjectElement(element);
     }
 
@@ -157,6 +161,7 @@ public class JsonContext : IDisposable
             ObjectElements[ObjectElementCount] = element;
             return ObjectElementCount++;
         }
+
         return ResizeAndAddObjectElement(element);
     }
 
@@ -246,7 +251,10 @@ public struct ObjectElement
     public void SetNextSiblingOffset(uint offset)
     {
 #if DEBUG
-        if (offset > 0x1FFFFFFF) throw new OverflowException("JSON too complex (Offset > 29 bits)");
+        if (offset > 0x1FFFFFFF)
+        {
+            throw new OverflowException("JSON too complex (Offset > 29 bits)");
+        }
 #endif
         MetaData = (MetaData & 0xE0000000) | (offset & 0x1FFFFFFF);
     }
@@ -296,6 +304,7 @@ public readonly record struct JsonNode(
         {
             throw new InvalidOperationException();
         }
+
         return Context.ArrayElements[ValueIndex].Index != 0;
     }
 
@@ -306,6 +315,7 @@ public readonly record struct JsonNode(
         {
             throw new InvalidOperationException();
         }
+
         return Context.Numbers[Context.ArrayElements[ValueIndex].Index];
     }
 
@@ -316,6 +326,7 @@ public readonly record struct JsonNode(
         {
             throw new InvalidOperationException();
         }
+
         return Context.Strings[Context.ArrayElements[ValueIndex].Index];
     }
 
