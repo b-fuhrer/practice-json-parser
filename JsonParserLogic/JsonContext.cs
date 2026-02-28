@@ -30,10 +30,10 @@ public class JsonContext : IDisposable
     internal ArrayElement[] ArrayElements;
     internal ObjectElement[] ObjectElements;
 
-    internal uint NumberCount = 0;
-    internal uint StringCount = 0;
-    internal uint ArrayElementCount = 0;
-    internal uint ObjectElementCount = 0;
+    internal int NumberCount = 0;
+    internal int StringCount = 0;
+    internal int ArrayElementCount = 0;
+    internal int ObjectElementCount = 0;
 
     public JsonContext(int jsonLength)
     {
@@ -72,7 +72,7 @@ public class JsonContext : IDisposable
         }
     }
 
-    private static void Resize<T>(ref T[] array, uint elementCount)
+    private static void Resize<T>(ref T[] array, int elementCount)
     {
         int newSize = array.Length * 2;
         var newArray = ArrayPool<T>.Shared.Rent(newSize);
@@ -86,7 +86,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint AddNumber(double value)
+    public int AddNumber(double value)
     {
         if (NumberCount < Numbers.Length)
         {
@@ -98,7 +98,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint AddString(string value)
+    public int AddString(string value)
     {
         if (StringCount < Strings.Length)
         {
@@ -109,7 +109,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint AddArrayElement(JsonType type, uint index)
+    public int AddArrayElement(JsonType type, int index)
     {
         var element = new ArrayElement(type, index);
 
@@ -122,9 +122,9 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint AddArrayElement(bool boolean)
+    public int AddArrayElement(bool boolean)
     {
-        var element = new ArrayElement(JsonType.Bool, boolean ? 1u : 0u);
+        var element = new ArrayElement(JsonType.Bool, boolean ? 1 : 0);
 
         if (ArrayElementCount < ArrayElements.Length)
         {
@@ -135,7 +135,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint AddObjectElement(JsonType valueType, uint keyIndex, uint valueIndex)
+    public int AddObjectElement(JsonType valueType, int keyIndex, int valueIndex)
     {
         var element = new ObjectElement(valueType, keyIndex, valueIndex);
 
@@ -148,9 +148,9 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint AddObjectElement(uint keyIndex, bool boolean)
+    public int AddObjectElement(int keyIndex, bool boolean)
     {
-        var element = new ObjectElement(JsonType.Bool, keyIndex, boolean ? 1u : 0u);
+        var element = new ObjectElement(JsonType.Bool, keyIndex, boolean ? 1 : 0);
 
         if (ObjectElementCount < ObjectElements.Length)
         {
@@ -161,7 +161,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private uint ResizeAndAddNumber(double value)
+    private int ResizeAndAddNumber(double value)
     {
         Resize(ref Numbers, NumberCount);
         Numbers[NumberCount] = value;
@@ -169,7 +169,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private uint ResizeAndAddString(string value)
+    private int ResizeAndAddString(string value)
     {
         Resize(ref Strings, StringCount);
         Strings[StringCount] = value;
@@ -177,7 +177,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private uint ResizeAndAddArrayElement(ArrayElement element)
+    private int ResizeAndAddArrayElement(ArrayElement element)
     {
         Resize(ref ArrayElements, ArrayElementCount);
         ArrayElements[ArrayElementCount] = element;
@@ -185,7 +185,7 @@ public class JsonContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private uint ResizeAndAddObjectElement(ObjectElement element)
+    private int ResizeAndAddObjectElement(ObjectElement element)
     {
         Resize(ref ObjectElements, ObjectElementCount);
         ObjectElements[ObjectElementCount] = element;
@@ -197,12 +197,12 @@ public class JsonContext : IDisposable
 public struct ArrayElement
 {
     internal uint MetaData; // first 3 bits = JsonType, latter 29 bits = next sibling index offset
-    public uint Index;
+    public int Index;
 
     public JsonType Type => (JsonType)(MetaData >> 29); // access most significant 3 bits
     public uint NextSiblingOffset => MetaData & 0x1FFFFFFF; // access least significant 29 bits
 
-    public ArrayElement(JsonType type, uint index)
+    public ArrayElement(JsonType type, int index)
     {
         Index = index;
 
@@ -214,7 +214,10 @@ public struct ArrayElement
     public void SetNextSiblingOffset(uint offset)
     {
 #if DEBUG
-        if (offset > 0x1FFFFFFF) throw new OverflowException("JSON too complex (Offset > 29 bits)");
+        if (offset > 0x1FFFFFFF)
+        {
+            throw new OverflowException("Next ArrayElement sibling too far away (Offset > 29 bits)");
+        }
 #endif
         MetaData = (MetaData & 0xE0000000) | (offset & 0x1FFFFFFF);
     }
@@ -224,13 +227,13 @@ public struct ArrayElement
 public struct ObjectElement
 {
     internal uint MetaData; // first 3 bits = JsonType, latter 29 bits = next sibling index offset
-    public uint KeyIndex;
-    public uint ValueIndex;
+    public int KeyIndex;
+    public int ValueIndex;
 
     public JsonType Type => (JsonType)(MetaData >> 29); // access most significant 3 bits
     public uint NextSiblingOffset => MetaData & 0x1FFFFFFF; // access least significant 29 bits
 
-    public ObjectElement(JsonType type, uint keyIndex, uint valueIndex)
+    public ObjectElement(JsonType type, int keyIndex, int valueIndex)
     {
         KeyIndex = keyIndex;
         ValueIndex = valueIndex;
@@ -249,36 +252,10 @@ public struct ObjectElement
     }
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 16)]
-public readonly record struct JsonNode(
-    JsonContext Context,
-    uint Index,
-    JsonType Type, // success: result type, error: parsing type context
-    JsonError Error
-)
-{
-    // accessors
-    public bool IsSuccess => Error == JsonError.None;
-    public bool IsError => Error != JsonError.None;
-
-    // constructors
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode Ok(JsonContext context, JsonType type, uint index)
-    {
-        return new JsonNode(context, index, type, JsonError.None);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode Err(JsonContext context, JsonError error, JsonType type)
-    {
-        return new JsonNode(context, 0, type, error);
-    }
-}
-
 [StructLayout(LayoutKind.Sequential, Size = 12)]
 public readonly record struct JsonResult(
-    uint ElementIndex,
-    int PositionIndex,
+    int ElementIndex,
+    int JsonIndex,
     JsonType Type,
     JsonError Error
 )
@@ -288,7 +265,7 @@ public readonly record struct JsonResult(
     public bool IsError => Error != JsonError.None;
 
     // constructors
-    public static JsonResult Ok(JsonType type, uint elementIndex, int nextIndex)
+    public static JsonResult Ok(JsonType type, int elementIndex, int nextIndex)
     {
         return new JsonResult(elementIndex, nextIndex, type, JsonError.None);
     }
@@ -296,5 +273,62 @@ public readonly record struct JsonResult(
     public static JsonResult Err(JsonError error, JsonType type, int currentIndex)
     {
         return new JsonResult(0, currentIndex, type, error);
+    }
+}
+
+[StructLayout(LayoutKind.Sequential, Size = 16)]
+public readonly record struct JsonNode(
+    JsonContext Context,
+    int ValueIndex,
+    JsonType Type, // success: result type, error: parsing type context
+    JsonError Error
+)
+{
+    // accessors
+    public bool IsSuccess => Error == JsonError.None;
+    public bool IsError => Error != JsonError.None;
+
+    // getters
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool GetBoolean()
+    {
+        if (Type != JsonType.Bool)
+        {
+            throw new InvalidOperationException();
+        }
+        return Context.ArrayElements[ValueIndex].Index != 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double GetNumber()
+    {
+        if (Type != JsonType.Number)
+        {
+            throw new InvalidOperationException();
+        }
+        return Context.Numbers[Context.ArrayElements[ValueIndex].Index];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public string GetString()
+    {
+        if (Type != JsonType.String)
+        {
+            throw new InvalidOperationException();
+        }
+        return Context.Strings[Context.ArrayElements[ValueIndex].Index];
+    }
+
+    // constructors
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static JsonNode Ok(JsonContext context, JsonType type, int index)
+    {
+        return new JsonNode(context, index, type, JsonError.None);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static JsonNode Err(JsonContext context, JsonError error, JsonType type)
+    {
+        return new JsonNode(context, 0, type, error);
     }
 }
