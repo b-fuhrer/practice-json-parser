@@ -233,7 +233,7 @@ public struct ObjectElement
 {
     internal uint MetaData; // first 3 bits = JsonType, latter 29 bits = next sibling index offset
     public int KeyIndex;
-    public int ValueIndex;
+    public int _valueIndex;
 
     public JsonType Type => (JsonType)(MetaData >> 29); // access most significant 3 bits
     public uint NextSiblingOffset => MetaData & 0x1FFFFFFF; // access least significant 29 bits
@@ -241,7 +241,7 @@ public struct ObjectElement
     public ObjectElement(JsonType type, int keyIndex, int valueIndex)
     {
         KeyIndex = keyIndex;
-        ValueIndex = valueIndex;
+        _valueIndex = valueIndex;
 
         uint defaultOffset = type < JsonType.Array ? 1u : 0u;
         MetaData = ((uint)type << 29) | defaultOffset;
@@ -285,13 +285,12 @@ public readonly record struct JsonResult(
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 16)]
-public readonly record struct JsonNode(
-    JsonContext Context,
-    int ValueIndex,
-    JsonType Type, // success: result type, error: parsing type context
-    JsonError Error
-)
+public readonly struct JsonNode(JsonContext context, int valueIndex, JsonType type, JsonError error, bool isRawValue)
 {
+    public readonly JsonContext Context = context;
+    public readonly JsonType Type = type; // success: result type, error: parsing type context
+    public readonly JsonError Error = error;
+
     // accessors
     public bool IsSuccess => Error == JsonError.None;
     public bool IsError => Error != JsonError.None;
@@ -305,7 +304,9 @@ public readonly record struct JsonNode(
             throw new InvalidOperationException();
         }
 
-        return Context.ArrayElements[ValueIndex].Index != 0;
+        return isRawValue
+            ? valueIndex != 0
+            : Context.ArrayElements[valueIndex].Index != 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -316,7 +317,9 @@ public readonly record struct JsonNode(
             throw new InvalidOperationException();
         }
 
-        return Context.Numbers[Context.ArrayElements[ValueIndex].Index];
+        return isRawValue
+            ? Context.Numbers[valueIndex]
+            : Context.Numbers[Context.ArrayElements[valueIndex].Index];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -327,19 +330,49 @@ public readonly record struct JsonNode(
             throw new InvalidOperationException();
         }
 
-        return Context.Strings[Context.ArrayElements[ValueIndex].Index];
+        return isRawValue
+            ? Context.Strings[valueIndex]
+            : Context.Strings[Context.ArrayElements[valueIndex].Index];
     }
+
+    /*
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ArrayEnumerator GetArray()
+    {
+        if (Type != JsonType.Array)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return new ArrayEnumerator(Context, valueIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ObjectEnumerator GetObject()
+    {
+        if (Type != JsonType.Object)
+        {
+            throw new InvalidOperationException();
+        }
+
+        int startIndex = Context.ArrayElements[valueIndex].NextSiblingOffset <= 1
+            ? -1
+            : Context.ArrayElements[valueIndex].Index;
+
+        return new ObjectEnumerator(Context, startIndex);
+    }
+    */
 
     // constructors
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static JsonNode Ok(JsonContext context, JsonType type, int index)
+    public static JsonNode Ok(JsonContext context, JsonType type, int index, bool isRawValue = false)
     {
-        return new JsonNode(context, index, type, JsonError.None);
+        return new JsonNode(context, index, type, JsonError.None, isRawValue);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static JsonNode Err(JsonContext context, JsonError error, JsonType type)
     {
-        return new JsonNode(context, 0, type, error);
+        return new JsonNode(context, 0, type, error, false);
     }
 }
