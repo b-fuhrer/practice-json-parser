@@ -17,11 +17,14 @@ public class NumberTests
     public void ParseNumber_ValidInputs_ReturnCorrectValue(string input, double expected)
     {
         var bytes = ToBytes(input);
-        var result = JsonParser.ParseNumber(bytes, 0);
+        using var context = new JsonContext(bytes.Length);
+        var result = JsonParser.ParseNumber(context, bytes, 0);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(expected, result.Number);
-        Assert.Equal(bytes.Length, result.Index);
+
+        var node = JsonNode.Ok(context, result.Type, result.ElementIndex);
+        Assert.Equal(expected, node.GetNumber());
+        Assert.Equal(bytes.Length, result.JsonIndex);
     }
 
     [Theory]
@@ -37,7 +40,8 @@ public class NumberTests
     public void ParseNumber_InvalidFormats_ReturnError(string input)
     {
         var bytes = ToBytes(input);
-        var result = JsonParser.ParseNumber(bytes, 0);
+        using var context = new JsonContext(bytes.Length);
+        var result = JsonParser.ParseNumber(context, bytes, 0);
 
         Assert.False(result.IsSuccess);
     }

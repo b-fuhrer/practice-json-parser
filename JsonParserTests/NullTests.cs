@@ -10,11 +10,12 @@ public class NullTests
     public void ParseNull_ValidInput_ReturnsSuccess()
     {
         var bytes = ToBytes("null");
-        var result = JsonParser.ParseNull(bytes, 0);
+        using var context = new JsonContext(bytes.Length);
+        var result = JsonParser.ParseNull(context, bytes, 0);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(JsonType.Null, result.Type);
-        Assert.Equal(4, result.Index);
+        Assert.Equal(4, result.JsonIndex);
     }
 
     [Theory]
@@ -27,7 +28,8 @@ public class NullTests
     public void ParseNull_InvalidInputs_ReturnsError(string input)
     {
         var bytes = ToBytes(input);
-        var result = JsonParser.ParseNull(bytes, 0);
+        using var context = new JsonContext(bytes.Length);
+        var result = JsonParser.ParseNull(context, bytes, 0);
 
         Assert.False(result.IsSuccess);
     }

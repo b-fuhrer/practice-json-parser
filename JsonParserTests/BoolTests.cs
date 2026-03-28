@@ -12,11 +12,14 @@ public class BoolTests
     public void ParseBool_ValidInputs_ReturnCorrectValue(string input, bool expected)
     {
         var bytes = ToBytes(input);
-        var result = JsonParser.ParseBool(bytes, 0);
+        using var context = new JsonContext(bytes.Length);
+        var result = JsonParser.ParseBool(context, bytes, 0);
 
-        Assert.True(result.IsSuccess, $"Failed to parse: {input}");
-        Assert.Equal(expected, result.Bool);
-        Assert.Equal(bytes.Length, result.Index);
+        Assert.True(result.IsSuccess);
+
+        var node = JsonNode.Ok(context, result.Type, result.ElementIndex);
+        Assert.Equal(expected, node.GetBoolean());
+        Assert.Equal(bytes.Length, result.JsonIndex);
     }
 
     [Theory]
@@ -29,8 +32,9 @@ public class BoolTests
     public void ParseBool_InvalidInputs_ReturnError(string input)
     {
         var bytes = ToBytes(input);
-        var result = JsonParser.ParseBool(bytes, 0);
+        using var context = new JsonContext(bytes.Length);
+        var result = JsonParser.ParseBool(context, bytes, 0);
 
-        Assert.False(result.IsSuccess, $"Should have failed for input: {input}");
+        Assert.False(result.IsSuccess);
     }
 }
