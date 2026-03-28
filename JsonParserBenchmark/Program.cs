@@ -45,9 +45,11 @@ public class ParserBenchmarks
     }
 
     [Benchmark]
-    public JsonNode MyParser()
+    public JsonParserLogic.JsonError MyParser()
     {
-        return JsonParser.Parse(_jsonBytes);
+        using var context = new JsonContext(_jsonBytes.Length);
+        var node = JsonParser.Parse(context, _jsonBytes);
+        return node.Error;
     }
 
     [Benchmark]

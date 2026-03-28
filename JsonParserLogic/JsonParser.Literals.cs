@@ -1,47 +1,40 @@
 ﻿using System.Text;
+
 namespace JsonParserLogic;
 
 public static partial class JsonParser
 {
-    internal static JsonNode ParseNull(ReadOnlySpan<byte> jsonText, int currentIndex)
+    internal static JsonResult ParseNull(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         const int nullLength = 4;
         var nullLiteral = "null"u8;
 
         if (currentIndex + nullLength > jsonText.Length)
         {
-            return JsonNode.Err(JsonError.EndOfFile, currentIndex);
+            return JsonResult.Err(JsonError.EndOfFile, JsonType.Null, currentIndex);
         }
 
         var slice = jsonText.Slice(currentIndex, nullLength);
         if (!slice.SequenceEqual(nullLiteral))
         {
-            return JsonNode.Err(
-                JsonError.InvalidSyntax,
-                $"Expected '{Encoding.UTF8.GetString(nullLiteral)}', received '{Encoding.UTF8.GetString(slice)}'.",
-                currentIndex
-            );
+            return JsonResult.Err(JsonError.InvalidSyntax, JsonType.Null, currentIndex);
         }
 
         int afterLiteralIndex = currentIndex + nullLength;
         if (afterLiteralIndex == jsonText.Length)
         {
-            return JsonNode.OkNull(afterLiteralIndex);
+            return JsonResult.Ok(JsonType.Null, 0, afterLiteralIndex);
         }
 
         byte afterLiteralCharacter = jsonText[afterLiteralIndex];
         bool isSeparator = IsSeparator(afterLiteralCharacter);
 
         return isSeparator
-            ? JsonNode.OkNull(afterLiteralIndex)
-            : JsonNode.Err(
-                JsonError.InvalidSyntax,
-                "Null is not allowed to be followed by trailing garbage.",
-                afterLiteralIndex
-            );
+            ? JsonResult.Ok(JsonType.Null, 0, afterLiteralIndex)
+            : JsonResult.Err(JsonError.InvalidSyntax, JsonType.Null, afterLiteralIndex);
     }
 
-    internal static JsonNode ParseBool(ReadOnlySpan<byte> jsonText, int currentIndex)
+    internal static JsonResult ParseBool(ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         byte firstCharacter = jsonText[currentIndex];
 
@@ -49,15 +42,11 @@ public static partial class JsonParser
         {
             (byte)'t' => ParseBoolValue(jsonText, currentIndex, true, "true"u8),
             (byte)'f' => ParseBoolValue(jsonText, currentIndex, false, "false"u8),
-            _ => JsonNode.Err(
-                JsonError.InvalidSyntax,
-                $"Expected 't' (true) or 'f' (false), received '{firstCharacter}'.",
-                currentIndex
-            )
+            _ => JsonResult.Err(JsonError.InvalidSyntax, JsonType.Bool, currentIndex)
         };
     }
 
-    private static JsonNode ParseBoolValue(
+    private static JsonResult ParseBoolValue(
         ReadOnlySpan<byte> jsonText,
         int currentIndex,
         bool successReturnValue,
@@ -68,34 +57,28 @@ public static partial class JsonParser
 
         if (currentIndex + literalLength > jsonText.Length)
         {
-            return JsonNode.Err(JsonError.EndOfFile, currentIndex);
+            return JsonResult.Err(JsonError.EndOfFile, JsonType.Bool, currentIndex);
         }
 
         var slice = jsonText.Slice(currentIndex, literalLength);
         if (!slice.SequenceEqual(boolLiteral))
         {
-            return JsonNode.Err(
-                JsonError.InvalidSyntax,
-                $"Expected '{Encoding.UTF8.GetString(boolLiteral)}', received '{Encoding.UTF8.GetString(slice)}'.",
-                currentIndex
-            );
+            return JsonResult.Err(JsonError.InvalidSyntax, JsonType.Bool, currentIndex);
         }
 
         int afterLiteralIndex = currentIndex + literalLength;
+        int encodedBool = successReturnValue ? 1 : 0;
+
         if (afterLiteralIndex == jsonText.Length)
         {
-            return JsonNode.OkBool(successReturnValue, afterLiteralIndex);
+            return JsonResult.Ok(JsonType.Bool, encodedBool, afterLiteralIndex);
         }
 
         byte afterLiteralCharacter = jsonText[afterLiteralIndex];
         bool isSeparator = IsSeparator(afterLiteralCharacter);
 
         return isSeparator
-            ? JsonNode.OkBool(successReturnValue, afterLiteralIndex)
-            : JsonNode.Err(
-                JsonError.InvalidSyntax,
-                "Bools are not allowed to be followed by trailing garbage.",
-                afterLiteralIndex
-            );
+            ? JsonResult.Ok(JsonType.Bool, encodedBool, afterLiteralIndex)
+            : JsonResult.Err(JsonError.InvalidSyntax, JsonType.Bool, afterLiteralIndex);
     }
 }

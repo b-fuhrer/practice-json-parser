@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿﻿using System.Text;
 using JsonParserLogic;
 namespace JsonParserTests;
 
@@ -22,7 +22,7 @@ public class NumberTests
 
         Assert.True(result.IsSuccess);
 
-        var node = JsonNode.Ok(context, result.Type, result.ElementIndex);
+        var node = JsonNode.Ok(context, result.Type, result.ElementIndex, isRawValue: true);
         Assert.Equal(expected, node.GetNumber());
         Assert.Equal(bytes.Length, result.JsonIndex);
     }

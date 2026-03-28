@@ -13,11 +13,11 @@ public class BoolTests
     {
         var bytes = ToBytes(input);
         using var context = new JsonContext(bytes.Length);
-        var result = JsonParser.ParseBool(context, bytes, 0);
+        var result = JsonParser.ParseBool(bytes, 0);
 
         Assert.True(result.IsSuccess);
 
-        var node = JsonNode.Ok(context, result.Type, result.ElementIndex);
+        var node = JsonNode.Ok(context, result.Type, result.ElementIndex, isRawValue: true);
         Assert.Equal(expected, node.GetBoolean());
         Assert.Equal(bytes.Length, result.JsonIndex);
     }
@@ -32,8 +32,7 @@ public class BoolTests
     public void ParseBool_InvalidInputs_ReturnError(string input)
     {
         var bytes = ToBytes(input);
-        using var context = new JsonContext(bytes.Length);
-        var result = JsonParser.ParseBool(context, bytes, 0);
+        var result = JsonParser.ParseBool(bytes, 0);
 
         Assert.False(result.IsSuccess);
     }

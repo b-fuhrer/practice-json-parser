@@ -2,7 +2,7 @@
 
 public static partial class JsonParser
 {
-    internal static JsonNode ParseNumber(ReadOnlySpan<byte> jsonText, int currentIndex)
+    internal static JsonResult ParseNumber(JsonContext context, ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         (double numberSign, int newIndex) = jsonText[currentIndex] == (byte)'-'
             ? (-1.0, currentIndex + 1)
@@ -34,7 +34,7 @@ public static partial class JsonParser
         if (newIndex < jsonText.Length && (jsonText[newIndex] == (byte)'e' || jsonText[newIndex] == (byte)'E'))
         {
             IntResult exponentPart = ParseExponentPart(jsonText, newIndex);
-            
+
             if (exponentPart.Error is { } exponentPartError)
             {
                 return exponentPartError;
@@ -50,34 +50,34 @@ public static partial class JsonParser
 
         if (newIndex >= jsonText.Length)
         {
-            return JsonNode.OkNumber(resultNumber, newIndex); // numbers are allowed at EOF
+            int numberIndexAtEof = context.AddNumber(resultNumber);
+            return JsonResult.Ok(JsonType.Number, numberIndexAtEof, newIndex);
         }
 
         byte lastCharacter = jsonText[newIndex];
 
-        return lastCharacter switch
+        JsonResult result = lastCharacter switch
         {
             (byte)',' or (byte)']' or (byte)'}' or (byte)' ' or (byte)'\t' or (byte)'\n' or (byte)'\r' =>
-                JsonNode.OkNumber(
-                    resultNumber,
-                    newIndex
-                ),
-            (byte)'.' => JsonNode.Err(
+                JsonResult.Ok(JsonType.Number, context.AddNumber(resultNumber), newIndex),
+            (byte)'.' => JsonResult.Err(
                 JsonError.InvalidCharacter,
-                "A number is only allowed to have one decimal point.",
+                JsonType.Number,
                 newIndex
             ),
-            (byte)'e' or (byte)'E' => JsonNode.Err(
+            (byte)'e' or (byte)'E' => JsonResult.Err(
                 JsonError.InvalidCharacter,
-                "A number is only allowed to have one exponent marker 'e'/'E'.",
+                JsonType.Number,
                 newIndex
             ),
-            _ => JsonNode.Err(
+            _ => JsonResult.Err(
                 JsonError.InvalidCharacter,
-                $"A number cannot contain the character '{(char)lastCharacter}'.",
+                JsonType.Number,
                 newIndex
             )
         };
+
+        return result;
     }
 
     private static DoubleResult ParseIntegerPart(ReadOnlySpan<byte> jsonText, int index)
@@ -89,9 +89,9 @@ public static partial class JsonParser
             if (index + 1 < jsonText.Length && IsDigit(jsonText[index + 1]))
             {
                 return DoubleResult.Err(
-                    JsonNode.Err(
+                    JsonResult.Err(
                         JsonError.InvalidSyntax,
-                        "Numbers are not allowed to have a leading zero.",
+                        JsonType.Number,
                         index
                     )
                 );
@@ -113,9 +113,9 @@ public static partial class JsonParser
         if (integerLoopStartIndex == index)
         {
             return DoubleResult.Err(
-                JsonNode.Err(
+                JsonResult.Err(
                     JsonError.InvalidSyntax,
-                    "Number does not contain any digits in the integer part.",
+                    JsonType.Number,
                     index
                 )
             );
@@ -143,9 +143,9 @@ public static partial class JsonParser
 
         if (newIndex == fractionStartIndex)
         {
-            return DoubleResult.Err(JsonNode.Err(
+            return DoubleResult.Err(JsonResult.Err(
                     JsonError.InvalidCharacter,
-                    "A number is not allowed to end with a decimal point.",
+                    JsonType.Number,
                     index
                 )
             );
@@ -170,7 +170,7 @@ public static partial class JsonParser
         }
         else
         {
-            return IntResult.Err(JsonNode.Err(JsonError.EndOfFile, index));
+            return IntResult.Err(JsonResult.Err(JsonError.EndOfFile, JsonType.Number, index));
         }
 
         int exponentStartIndex = index;
@@ -187,9 +187,9 @@ public static partial class JsonParser
         if (index == exponentStartIndex)
         {
             return IntResult.Err(
-                JsonNode.Err(
+                JsonResult.Err(
                     JsonError.InvalidCharacter,
-                    "A number in scientific notation is not allowed to end with an 'e'/'E'.",
+                    JsonType.Number,
                     index
                 )
             );
@@ -216,15 +216,15 @@ public static partial class JsonParser
         return exponent < 0 ? 1.0 / result : result;
     }
 
-    private readonly record struct DoubleResult(double Value, int NewIndex, JsonNode? Error)
+    private readonly record struct DoubleResult(double Value, int NewIndex, JsonResult? Error)
     {
         public static DoubleResult Ok(double value, int index) => new(value, index, null);
-        public static DoubleResult Err(JsonNode error) => new(0.0, 0, error);
+        public static DoubleResult Err(JsonResult error) => new(0.0, 0, error);
     }
 
-    private readonly record struct IntResult(int Value, int NewIndex, JsonNode? Error)
+    private readonly record struct IntResult(int Value, int NewIndex, JsonResult? Error)
     {
         public static IntResult Ok(int value, int index) => new(value, index, null);
-        public static IntResult Err(JsonNode error) => new(0, 0, error);
+        public static IntResult Err(JsonResult error) => new(0, 0, error);
     }
 }

@@ -1,15 +1,16 @@
 ﻿using System.Text;
+
 namespace JsonParserLogic;
 
 public static partial class JsonParser
 {
     private const int InvalidHex = -1;
 
-    internal static JsonNode ParseString(ReadOnlySpan<byte> jsonText, int currentIndex)
+    internal static JsonResult ParseString(JsonContext context, ReadOnlySpan<byte> jsonText, int currentIndex)
     {
         if (currentIndex + 1 > jsonText.Length)
         {
-            return JsonNode.Err(JsonError.EndOfFile, currentIndex);
+            return JsonResult.Err(JsonError.EndOfFile, JsonType.String, currentIndex);
         }
 
         // initialIndex = first character after the opening "
@@ -23,21 +24,22 @@ public static partial class JsonParser
             if (currentCharacter == (byte)'"')
             {
                 string parsedString = Encoding.UTF8.GetString(jsonText.Slice(initialIndex, newIndex - initialIndex));
-                return JsonNode.OkString(parsedString, newIndex + 1);
+                int stringIndex = context.AddString(parsedString);
+                return JsonResult.Ok(JsonType.String, stringIndex, newIndex + 1);
             }
 
             if (currentCharacter == (byte)'\\')
             {
-                return OnEscapedCharacter(jsonText, initialIndex, newIndex);
+                return OnEscapedCharacter(context, jsonText, initialIndex, newIndex);
             }
 
             newIndex++;
         }
 
-        return JsonNode.Err(JsonError.EndOfFile, newIndex);
+        return JsonResult.Err(JsonError.EndOfFile, JsonType.String, newIndex);
     }
 
-    private static JsonNode OnEscapedCharacter(ReadOnlySpan<byte> jsonText, int initialIndex, int currentIndex)
+    private static JsonResult OnEscapedCharacter(JsonContext context, ReadOnlySpan<byte> jsonText, int initialIndex, int currentIndex)
     {
         int newIndex = currentIndex;
 
@@ -60,7 +62,8 @@ public static partial class JsonParser
                     StringBuilderAppendUtf8(stringBuilder, jsonText.Slice(startOfSegment, newIndex - startOfSegment));
                 }
 
-                return JsonNode.OkString(stringBuilder.ToString(), newIndex + 1);
+                int stringIndex = context.AddString(stringBuilder.ToString());
+                return JsonResult.Ok(JsonType.String, stringIndex, newIndex + 1);
             }
 
             if (currentCharacter == (byte)'\\')
@@ -72,15 +75,15 @@ public static partial class JsonParser
 
                 if (newIndex + 1 >= jsonText.Length)
                 {
-                    return JsonNode.Err(JsonError.EndOfFile, newIndex);
+                    return JsonResult.Err(JsonError.EndOfFile, JsonType.String, newIndex);
                 }
 
-                (char? escapedCharacter, int nextIndex, var escapedError) =
+                (char? escapedCharacter, int nextIndex, JsonResult? escapedError) =
                     DecodeEscapedCharacter(jsonText, newIndex + 1);
 
                 if (escapedError is { } escapedCharacterError)
                 {
-                    return JsonNode.Err(escapedCharacterError.JsonError, escapedCharacterError.ErrorMessage, nextIndex);
+                    return escapedCharacterError;
                 }
 
                 stringBuilder.Append(escapedCharacter);
@@ -92,7 +95,7 @@ public static partial class JsonParser
             newIndex++;
         }
 
-        return JsonNode.Err(JsonError.EndOfFile, newIndex);
+        return JsonResult.Err(JsonError.EndOfFile, JsonType.String, newIndex);
     }
 
     private static void StringBuilderAppendUtf8(StringBuilder stringBuilder, ReadOnlySpan<byte> utf8Slice)
@@ -109,7 +112,7 @@ public static partial class JsonParser
         stringBuilder.Append(stackBuffer[..amountOfCharsWritten]);
     }
 
-    private static (char? value, int newIndex, JsonNode? error) DecodeEscapedCharacter(ReadOnlySpan<byte> jsonText,
+    private static (char? value, int newIndex, JsonResult? error) DecodeEscapedCharacter(ReadOnlySpan<byte> jsonText,
         int escapedIndex)
     {
         byte escapedCharacter = jsonText[escapedIndex];
@@ -125,21 +128,22 @@ public static partial class JsonParser
             (byte)'/' => ('/', escapedIndex + 1, null),
             (byte)'"' => ('"', escapedIndex + 1, null),
             (byte)'u' => DecodeUnicodeSequence(jsonText, escapedIndex),
-            _ => (null, escapedIndex, JsonNode.Err(
-                        JsonError.InvalidCharacter,
-                        $"Failed to decode escaped character '\\{escapedCharacter}'"
-                    )
+            _ => (null, escapedIndex, JsonResult.Err(
+                    JsonError.InvalidCharacter,
+                    JsonType.String,
+                    escapedIndex
                 )
+            )
         };
     }
 
-    private static (char? value, int newIndex, JsonNode? error) DecodeUnicodeSequence(ReadOnlySpan<byte> jsonText,
+    private static (char? value, int newIndex, JsonResult? error) DecodeUnicodeSequence(ReadOnlySpan<byte> jsonText,
         int escapedIndex)
     {
         // escapedIndex = index of the 'u'
         if (escapedIndex + 4 >= jsonText.Length)
         {
-            return (null, escapedIndex, JsonNode.Err(JsonError.EndOfFile));
+            return (null, escapedIndex, JsonResult.Err(JsonError.EndOfFile, JsonType.String, escapedIndex));
         }
 
         int leftByte = ParseHexByteIntoInt(jsonText[escapedIndex + 1]);
@@ -150,11 +154,12 @@ public static partial class JsonParser
         // if any of the "bytes" is negative, their bit-wise OR is also negative
         if ((leftByte | middleLeftByte | middleRightByte | rightByte) < 0)
         {
-            return (null, escapedIndex, JsonNode.Err(
-                        JsonError.InvalidCharacter,
-                        $"Failed to decode invalid hexadecimal in unicode sequence '\\{Encoding.UTF8.GetString(jsonText.Slice(escapedIndex, 5))}'"
-                    )
-                );
+            return (null, escapedIndex, JsonResult.Err(
+                    JsonError.InvalidCharacter,
+                    JsonType.String,
+                    escapedIndex
+                )
+            );
         }
 
         char parsedSequence = (char)(leftByte << 12 | middleLeftByte << 8 | middleRightByte << 4 | rightByte);
@@ -167,8 +172,8 @@ public static partial class JsonParser
         return hexByte switch
         {
             >= (byte)'0' and <= (byte)'9' => hexByte - (byte)'0',
-            >= (byte)'A' and <= (byte)'F' => hexByte - (byte)'A' + 10, // A = 10 in hex
-            >= (byte)'a' and <= (byte)'f' => hexByte - (byte)'a' + 10, // a = 10 in hex
+            >= (byte)'A' and <= (byte)'F' => hexByte - (byte)'A' + 10,
+            >= (byte)'a' and <= (byte)'f' => hexByte - (byte)'a' + 10,
             _ => InvalidHex
         };
     }
