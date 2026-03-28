@@ -98,4 +98,24 @@ public class ArrayTests
 
         Assert.False(result.IsSuccess);
     }
+
+    [Fact]
+    public void ParseArray_ObjectWithPrimitiveProperties_DoesNotBreakSiblingTraversal()
+    {
+        var bytes = ToBytes("[{\"a\": 1, \"b\": true}, 42]");
+        using var context = new JsonContext(bytes.Length);
+        var result = JsonParser.ParseArray(context, bytes, 0);
+
+        Assert.True(result.IsSuccess);
+
+        var node = JsonNode.Ok(context, result.Type, result.ElementIndex);
+        var enumerator = node.GetArray();
+
+        var objectNode = enumerator.GetNext();
+        var numberNode = enumerator.GetNext();
+
+        Assert.Equal(JsonType.Object, objectNode.Type);
+        Assert.Equal(42.0, numberNode.GetNumber());
+        Assert.False(enumerator.GetNext().IsSuccess);
+    }
 }

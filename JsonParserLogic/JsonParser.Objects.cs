@@ -4,7 +4,8 @@ public static partial class JsonParser
 {
     internal static JsonResult ParseObject(JsonContext context, ReadOnlySpan<byte> jsonText, int currentIndex)
     {
-        int headerIndex = context.AddArrayElement(JsonType.Object, 0);
+        // object headers only track property-chain start, values live in ObjectElements
+        int headerIndex = context.AddArrayElement(JsonType.Object, -1);
 
         // current index is the index of the opening curly brace '{'
         int newIndex = SkipWhitespace(jsonText, currentIndex + 1);
@@ -83,14 +84,6 @@ public static partial class JsonParser
 
             lastPropertyIndex = propertyIndex;
 
-            if (parsedValue.Type == JsonType.Bool)
-            {
-                context.AddArrayElement(parsedValue.ElementIndex != 0);
-            }
-            else
-            {
-                context.AddArrayElement(parsedValue.Type, parsedValue.ElementIndex);
-            }
 
             int skipAfterValueIndex = SkipWhitespace(jsonText, parsedValue.JsonIndex);
             if (skipAfterValueIndex == jsonText.Length)

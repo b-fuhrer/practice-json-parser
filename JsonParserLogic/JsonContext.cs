@@ -430,9 +430,7 @@ public readonly struct JsonNode
             throw new InvalidOperationException();
         }
 
-        int startIndex = Context.ArrayElements[ValueIndex].NextSiblingOffset <= 1
-            ? -1
-            : Context.ArrayElements[ValueIndex].Index;
+        int startIndex = Context.ArrayElements[ValueIndex].Index;
 
         return new ObjectEnumerator(Context, startIndex);
     }
