@@ -8,6 +8,7 @@
         <WarningsAsErrors>nullable</WarningsAsErrors>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>JsonParserLogic</RootNamespace>
+        <NoWarn>$(NoWarn);IDE0130</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
